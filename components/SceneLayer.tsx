@@ -4,6 +4,8 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { asset } from "@/lib/asset";
 
+const BOOT_DELAY_MS = 4000;
+
 const Experience = dynamic(() => import("@/components/Experience"), { ssr: false });
 
 function hasWebGL() {
@@ -17,7 +19,7 @@ function hasWebGL() {
 
 /**
  * Fixed 3D layer behind the HTML text. A pre-rendered poster of frame 1 shows until the first WebGL frame (and stays for good
- * without WebGL). The 3D bundle starts loading only once the browser is idle, so the text and poster paint first.
+ * without WebGL). The 3D bundle loads on first interaction or shortly after load, so the text and poster paint first.
  */
 export function SceneLayer() {
   const [webgl, setWebgl] = useState(false);
@@ -25,13 +27,24 @@ export function SceneLayer() {
 
   useEffect(() => {
     if (!hasWebGL()) return;
-    const start = () => setWebgl(true);
-    if ("requestIdleCallback" in window) {
-      const id = requestIdleCallback(start, { timeout: 1500 });
-      return () => cancelIdleCallback(id);
+    // The poster is frame 1 pixel for pixel, so the WebGL boot (shader compile, PMREM) can wait for the first touch, scroll or key,
+    // or a short pause after load. It then never competes with the text paint and first input.
+    const events = ["pointerdown", "touchstart", "wheel", "scroll", "keydown"] as const;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const start = () => {
+      cleanup();
+      setWebgl(true);
+    };
+    const arm = () => (timer = setTimeout(start, BOOT_DELAY_MS));
+    function cleanup() {
+      clearTimeout(timer);
+      window.removeEventListener("load", arm);
+      for (const e of events) window.removeEventListener(e, start);
     }
-    const id = setTimeout(start, 200);
-    return () => clearTimeout(id);
+    for (const e of events) window.addEventListener(e, start, { once: true, passive: true });
+    if (document.readyState === "complete") arm();
+    else window.addEventListener("load", arm, { once: true });
+    return cleanup;
   }, []);
 
   return (
