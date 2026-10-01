@@ -31,14 +31,18 @@ function launchAr(mode: ArMode) {
     a.href = asset(`/models/vial-${cap}.usdz`);
     // Quick Look requires the anchor to wrap an image.
     a.appendChild(document.createElement("img"));
+    // Safari ignores clicks on detached anchors in some versions, so attach it for the duration of the click.
+    a.style.display = "none";
+    document.body.appendChild(a);
     a.click();
+    a.remove();
     return;
   }
   const file = encodeURIComponent(absolute(`/models/vial-${cap}.glb`));
   const fallback = encodeURIComponent(window.location.href);
   window.location.href =
     `intent://arvr.google.com/scene-viewer/1.2?file=${file}&mode=ar_preferred&resizable=false&title=Aurel%20Daily` +
-    `#Intent;scheme=https;package=com.google.ar.core;action=android.intent.action.VIEW;S.browser_fallback_url=${fallback};end;`;
+    `#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=${fallback};end;`;
 }
 
 function QrDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
