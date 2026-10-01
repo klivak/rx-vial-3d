@@ -1,6 +1,6 @@
 "use client";
 
-import { ContactShadows } from "@react-three/drei";
+import { ContactShadows } from "@react-three/drei/core/ContactShadows";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
 import { Color } from "three";

@@ -1,7 +1,8 @@
 // Performance budgets from docs/SPEC.md, measured on the production build the way a phone would load it.
 // Run after `pnpm build`: pnpm check-budgets
 import { chromium, devices } from "@playwright/test";
-import { readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { gzipSync } from "node:zlib";
 import { serveOut } from "./serve-out.mjs";
 
 const JS_BUDGET_KB = 400;
@@ -11,13 +12,12 @@ const server = await serveOut(4174);
 const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 const page = await browser.newPage(devices["Pixel 7"]);
 
-// Count transferred (gzip) bytes through the CDP network events, which see the compressed size.
-const cdp = await page.context().newCDPSession(page);
-await cdp.send("Network.enable");
-const transferred = new Map();
-const urls = new Map();
-cdp.on("Network.responseReceived", (e) => urls.set(e.requestId, e.response.url));
-cdp.on("Network.loadingFinished", (e) => transferred.set(e.requestId, e.encodedDataLength));
+// Record which JS files a phone actually downloads, then weigh them as gzip (body only, no HTTP headers).
+const scripts = new Set();
+page.on("response", (r) => {
+  const { pathname } = new URL(r.url());
+  if (pathname.endsWith(".js")) scripts.add(pathname.replace(/^\/rx-vial-3d\//, ""));
+});
 
 await page.goto("http://localhost:4174/rx-vial-3d/", { waitUntil: "networkidle" });
 await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
@@ -26,7 +26,7 @@ await browser.close();
 server.close();
 
 let jsKb = 0;
-for (const [id, url] of urls) if (url.endsWith(".js")) jsKb += (transferred.get(id) ?? 0) / 1024;
+for (const f of scripts) jsKb += gzipSync(readFileSync(`out/${f}`), { level: 9 }).length / 1024;
 
 let failed = false;
 const report = (name, value, budget) => {

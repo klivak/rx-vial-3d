@@ -1,6 +1,7 @@
 "use client";
 
-import { ContactShadows, PerformanceMonitor } from "@react-three/drei";
+import { ContactShadows } from "@react-three/drei/core/ContactShadows";
+import { PerformanceMonitor } from "@react-three/drei/core/PerformanceMonitor";
 import { Canvas, useThree } from "@react-three/fiber";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Box } from "@/components/Box";
@@ -13,7 +14,7 @@ import { createStudioEnvironment } from "@/lib/scene/studioEnvironment";
 
 const debug = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debug");
 // The FPS panel is only downloaded with ?debug.
-const Stats = lazy(() => import("@react-three/drei").then((m) => ({ default: m.Stats })));
+const Stats = lazy(() => import("@react-three/drei/core/Stats").then((m) => ({ default: m.Stats })));
 
 function Studio() {
   const gl = useThree((s) => s.gl);
