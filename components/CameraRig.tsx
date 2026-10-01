@@ -1,48 +1,28 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useRef } from "react";
-import { Vector3 } from "three";
-import { sceneState } from "@/lib/sceneState";
+import { sceneState, turntable } from "@/lib/sceneState";
 
-const goal = new Vector3();
-const BLEND_SECONDS = 0.5;
-
-/**
- * Places the camera on its orbit around the current target. Paused while OrbitControls own the camera on the last frame;
- * when it resumes it blends from wherever the user left the camera instead of snapping.
- */
-export function CameraRig({ enabled = true }: { enabled?: boolean }) {
-  const blend = useRef<{ from: Vector3; t: number } | null>(null);
-  const wasEnabled = useRef(enabled);
-
+/** Places the camera on its orbit around the current target; the turntable drag is an extra azimuth offset on top of the scroll state. */
+export function CameraRig() {
   useFrame(({ camera, invalidate }, delta) => {
-    if (!enabled) {
-      wasEnabled.current = false;
-      return;
+    const t = turntable;
+    if (!t.dragging) {
+      t.offset += t.velocity * delta;
+      t.velocity *= Math.exp(-delta * 4);
+      if (Math.abs(t.velocity) < 1e-3) t.velocity = 0;
     }
-    if (!wasEnabled.current) {
-      blend.current = { from: camera.position.clone(), t: 0 };
-      wasEnabled.current = true;
+    if (!t.enabled && !t.dragging) {
+      // Scrolling away from the last frame eases the user's spin back to the authored angle.
+      t.offset *= Math.exp(-delta * 6);
+      if (Math.abs(t.offset) < 1e-4) t.offset = 0;
     }
+    if (t.velocity !== 0 || (!t.enabled && t.offset !== 0)) invalidate();
+
     const s = sceneState;
-    goal.set(s.targetX + Math.sin(s.azimuth) * s.radius, s.camY, s.targetZ + Math.cos(s.azimuth) * s.radius);
-    if (blend.current) {
-      blend.current.t = Math.min(1, blend.current.t + delta / BLEND_SECONDS);
-      const k = 1 - Math.pow(1 - blend.current.t, 3);
-      camera.position.lerpVectors(blend.current.from, goal, k);
-      if (blend.current.t >= 1) blend.current = null;
-      else invalidate();
-    } else {
-      camera.position.copy(goal);
-    }
+    const azimuth = s.azimuth + t.offset;
+    camera.position.set(s.targetX + Math.sin(azimuth) * s.radius, s.camY, s.targetZ + Math.cos(azimuth) * s.radius);
     camera.lookAt(s.targetX, s.targetY, s.targetZ);
   });
-
-  useEffect(() => {
-    if (enabled) return;
-    wasEnabled.current = false;
-  }, [enabled]);
-
   return null;
 }

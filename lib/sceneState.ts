@@ -9,3 +9,6 @@ export const sceneState: FrameState = { ...frames.desktop[0] };
 export function applyFrame(state: FrameState) {
   Object.assign(sceneState, state);
 }
+
+/** Last-frame turntable: a drag offset added to the camera azimuth, with momentum, easing back to 0 when disabled. */
+export const turntable = { enabled: false, dragging: false, offset: 0, velocity: 0 };
