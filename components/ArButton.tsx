@@ -45,6 +45,21 @@ function launchAr(mode: ArMode) {
     `#Intent;scheme=https;package=com.google.android.googlequicksearchbox;action=android.intent.action.VIEW;S.browser_fallback_url=${fallback};end;`;
 }
 
+/** Most "AR does nothing" reports come from in-app browsers or phones without AR support, so spell out the requirements. */
+function ArTips({ className = "" }: { className?: string }) {
+  return (
+    <details className={`text-left text-sm text-muted ${className}`}>
+      <summary className="cursor-pointer">AR not opening?</summary>
+      <ul className="mt-2 list-disc space-y-1 pl-5">
+        <li>Open the page in Safari (iPhone) or Chrome (Android), not inside Telegram, Instagram or a QR scanner app.</li>
+        <li>iPhone / iPad: iOS 12 or newer. Tap &ldquo;View in AR&rdquo;, then point the camera at a table.</li>
+        <li>Android: install or update &ldquo;Google Play Services for AR&rdquo; and the Google app, then tap &ldquo;View in AR&rdquo;.</li>
+        <li>Scan the QR code from the live site, not from localhost.</li>
+      </ul>
+    </details>
+  );
+}
+
 function QrDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [svg, setSvg] = useState("");
@@ -80,6 +95,7 @@ function QrDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
       </h2>
       <p className="mt-2 text-sm text-muted">Scan with the camera, then tap &ldquo;View in AR&rdquo; to place the vial on your table.</p>
       <div className="mx-auto mt-5 aspect-square w-48 rounded-xl bg-white p-2" dangerouslySetInnerHTML={{ __html: svg }} />
+      <ArTips className="mt-5" />
       <button type="button" onClick={onClose} className={`${buttonBase} mt-5 border border-foreground/20 hover:bg-foreground/5`}>
         Close
       </button>
@@ -102,6 +118,7 @@ export function ArButton() {
       >
         {mode === "none" ? "View in AR on your phone" : "View in AR"}
       </button>
+      {mode && mode !== "none" && <ArTips className="mx-auto mt-1 max-w-sm basis-full" />}
       <QrDialog open={qrOpen} onClose={() => setQrOpen(false)} />
     </>
   );
