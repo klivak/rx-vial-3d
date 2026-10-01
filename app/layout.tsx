@@ -30,7 +30,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className="is-loading">
+      <noscript>
+        <style>{`.loader{display:none}html.is-loading{overflow:auto}`}</style>
+      </noscript>
       <body className={`${inter.variable} font-sans antialiased`}>
         <a
           href="#content"
