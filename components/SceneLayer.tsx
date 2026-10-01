@@ -5,6 +5,10 @@ import { useEffect, useState } from "react";
 import { asset } from "@/lib/asset";
 
 const MAX_LOADER_MS = 7000;
+/** The loader stays at least this long, so it reads as a calm intro rather than a flash. */
+const MIN_LOADER_MS = 1600;
+/** Extra hold after the first 3D frame: shaders and the environment map settle before the reveal. */
+const SETTLE_MS = 600;
 
 const Experience = dynamic(() => import("@/components/Experience"), { ssr: false });
 
@@ -35,7 +39,10 @@ export function SceneLayer() {
   }, []);
 
   useEffect(() => {
-    if (ready) setLoaded(true);
+    if (!ready) return;
+    const wait = Math.max(SETTLE_MS, MIN_LOADER_MS - performance.now());
+    const timer = setTimeout(() => setLoaded(true), wait);
+    return () => clearTimeout(timer);
   }, [ready]);
 
   useEffect(() => {
@@ -69,11 +76,14 @@ export function SceneLayer() {
       <div
         role="status"
         aria-label="Loading"
-        className={`loader fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-background transition-opacity duration-700 ease-out ${loaded ? "pointer-events-none opacity-0" : "opacity-100"}`}
+        className={`loader fixed inset-0 z-50 flex flex-col items-center justify-center gap-5 bg-background transition-[opacity,visibility] duration-1000 ease-out ${loaded ? "is-done invisible pointer-events-none opacity-0" : "opacity-100"}`}
       >
         <span className="loader-ring" />
         <span className="text-xs font-medium uppercase tracking-[0.3em] text-muted">
           Aurel Daily
+        </span>
+        <span className="h-px w-32 overflow-hidden bg-foreground/10">
+          <span className="loader-bar block h-full bg-accent" />
         </span>
       </div>
     </>
