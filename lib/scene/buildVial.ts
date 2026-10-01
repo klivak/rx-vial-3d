@@ -1,13 +1,14 @@
 import { CylinderGeometry, Group, LatheGeometry, Mesh, MeshStandardMaterial, type Material } from "three";
-import { VIAL, glassProfile, liquidProfile } from "@/lib/geometry/vialProfile";
-import { createCapMaterials, createGlassMaterial, createLiquidMaterial } from "@/lib/materials";
+import { VIAL, glassProfile } from "@/lib/geometry/vialProfile";
+import { createCapMaterials, createCapsuleMaterial, createGlassMaterial } from "@/lib/materials";
+import { createCapsulePileGeometry } from "@/lib/scene/buildCapsules";
 import type { Quality } from "@/lib/quality";
 import { createLabelTexture } from "@/lib/textures/label";
 
 export type VialParts = {
   group: Group;
   glass: Mesh;
-  liquid: Mesh;
+  capsules: Mesh;
   label: Mesh;
   cap: Mesh;
   dispose: () => void;
@@ -23,9 +24,13 @@ export function buildVial({ quality, capColor }: { quality: Quality; capColor: s
   glass.name = "Glass";
   glass.renderOrder = 2;
 
-  const liquid = new Mesh(new LatheGeometry(liquidProfile, segments), createLiquidMaterial());
-  liquid.name = "Liquid";
-  liquid.renderOrder = 1;
+  // The label promises 30 capsules, so the vial holds a pile of them instead of a flat liquid fill.
+  const capsules = new Mesh(
+    createCapsulePileGeometry({ detail: quality === "high" ? "high" : "low", innerRadius: VIAL.innerRadius, floor: VIAL.innerFloor, top: VIAL.fillTop }),
+    createCapsuleMaterial(),
+  );
+  capsules.name = "Capsules";
+  capsules.renderOrder = 1;
 
   const labelRadius = VIAL.radius + 0.0003;
   const label = new Mesh(
@@ -43,7 +48,7 @@ export function buildVial({ quality, capColor }: { quality: Quality; capColor: s
   cap.name = "Cap";
   cap.position.y = VIAL.capBottom + VIAL.capHeight / 2;
 
-  const meshes = [glass, liquid, label, cap];
+  const meshes = [glass, capsules, label, cap];
   meshes.forEach((m) => group.add(m));
 
   const dispose = () => {
@@ -54,5 +59,5 @@ export function buildVial({ quality, capColor }: { quality: Quality; capColor: s
     }
   };
 
-  return { group, glass, liquid, label, cap, dispose };
+  return { group, glass, capsules, label, cap, dispose };
 }

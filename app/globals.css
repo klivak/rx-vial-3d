@@ -25,3 +25,28 @@ body {
   background: var(--background);
   color: var(--foreground);
 }
+
+/* Hero scroll cue: a short segment falls through the line, then the line rests before the next drop. */
+@keyframes scroll-cue {
+  0% { transform: translateY(-100%); }
+  60%, 100% { transform: translateY(200%); }
+}
+.scroll-cue { animation: scroll-cue 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
+
+/* "How it works": the bar fills and the shadow warms while its step glows on the vial. */
+.step-card {
+  --lit: 0;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05), 0 8px 24px rgb(47 93 80 / calc(var(--lit) * 0.18));
+}
+.step-bar { transform: scaleY(var(--lit)); }
+
+/* Studio light behind the scene: warm pool in the middle, a vignette that deepens on the final frame. */
+.studio-light {
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 62%, rgb(255 238 214 / 0.5), transparent 75%),
+    radial-gradient(ellipse 120% 90% at 50% 55%, transparent 55%, rgb(70 50 30 / calc(0.06 + var(--tone, 0) * 0.12)));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-cue { animation: none; }
+}

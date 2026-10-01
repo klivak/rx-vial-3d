@@ -10,12 +10,13 @@ import { sceneState } from "@/lib/sceneState";
 
 const GLOW = new Color("#FFC890");
 const SWAY = (2 / 180) * Math.PI;
+const SHINE = new Color("#FFFFFF");
 const capTarget = new Color();
 
-function setGlow(materials: MeshStandardMaterial[], amount: number) {
+function setGlow(materials: MeshStandardMaterial[], amount: number, shine = 0) {
   for (const m of materials) {
-    m.emissive.copy(GLOW);
-    m.emissiveIntensity = amount * 0.35;
+    m.emissive.copy(GLOW).lerp(SHINE, shine);
+    m.emissiveIntensity = amount * 0.35 + shine * 0.45;
   }
 }
 
@@ -26,7 +27,13 @@ export function Vial() {
   const parts = useMemo(() => buildVial({ quality, capColor: capColorValue(getCapColor()) }), [quality]);
   useEffect(() => parts.dispose, [parts]);
   const invalidate = useThree((s) => s.invalidate);
-  useEffect(() => invalidate(), [capColor, invalidate]);
+  // A short flash of light on the cap whenever the colour changes (not on mount), decaying in the frame loop below.
+  const shine = useMemo(() => ({ value: 0, mounted: false }), []);
+  useEffect(() => {
+    if (shine.mounted) shine.value = 1;
+    shine.mounted = true;
+    invalidate();
+  }, [capColor, invalidate, shine]);
 
   const capMaterials = parts.cap.material as MeshStandardMaterial[];
   const labelMaterial = parts.label.material as MeshStandardMaterial;
@@ -37,7 +44,8 @@ export function Vial() {
     const sway = Math.sin(clock.elapsedTime * 0.6) * SWAY * s.idle;
     parts.group.rotation.y = s.vialRotY + sway;
     parts.group.position.y = s.vialLift;
-    setGlow(capMaterials, s.hCap);
+    shine.value = shine.value < 0.01 ? 0 : shine.value * Math.exp(-delta * 4);
+    setGlow(capMaterials, s.hCap, shine.value);
     setGlow([labelMaterial], s.hLabel);
 
     // ~300 ms exponential ease toward the picked cap colour.
@@ -49,7 +57,7 @@ export function Vial() {
       if (Math.abs(m.color.r - capTarget.r) + Math.abs(m.color.g - capTarget.g) + Math.abs(m.color.b - capTarget.b) > 0.002) settling = true;
     }
 
-    if (s.idle > 0.001 || settling) invalidate();
+    if (s.idle > 0.001 || settling || shine.value > 0) invalidate();
   });
 
   return <primitive object={parts.group} />;

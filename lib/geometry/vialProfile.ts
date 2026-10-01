@@ -12,7 +12,10 @@ export const VIAL = {
   labelCenterY: 0.034,
   labelHeight: 0.04,
   labelArc: (200 / 180) * Math.PI,
-  liquidTop: 0.05,
+  /** Inner glass radius and floor, and how high the capsule pile reaches. */
+  innerRadius: 0.0185,
+  innerFloor: 0.0032,
+  fillTop: 0.05,
 } as const;
 
 const v = (x: number, y: number) => new Vector2(x, y);
@@ -38,10 +41,3 @@ export const glassProfile: Vector2[] = [
   v(0, 0.0032),
 ];
 
-export const liquidProfile: Vector2[] = [
-  v(0, 0.0034),
-  v(0.0158, 0.0034),
-  v(0.0182, 0.006),
-  v(0.0182, VIAL.liquidTop),
-  v(0, VIAL.liquidTop),
-];

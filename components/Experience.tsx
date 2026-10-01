@@ -6,6 +6,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { Box } from "@/components/Box";
 import { CameraRig } from "@/components/CameraRig";
+import { Dust } from "@/components/Dust";
 import { ScrollTimeline } from "@/components/ScrollTimeline";
 import { Turntable } from "@/components/Turntable";
 import { Vial } from "@/components/Vial";
@@ -61,6 +62,7 @@ export default function Experience({ onReady, onLost }: { onReady: () => void; o
       <Studio />
       <Vial />
       <Box />
+      <Dust />
       {/* Redrawn whenever the demand frameloop renders, so the shadow follows the vial lift. */}
       <ContactShadows opacity={0.45} scale={0.14} blur={2.2} far={0.06} resolution={256} color="#3B2A1A" />
       {debug && (

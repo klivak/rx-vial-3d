@@ -1,4 +1,7 @@
 import { CtaActions } from "@/components/CtaActions";
+import { FrameNav } from "@/components/FrameNav";
+import { ScrollHint } from "@/components/ScrollHint";
+import { SplitWords } from "@/components/SplitWords";
 
 const heading = "text-3xl font-semibold tracking-tight sm:text-4xl";
 
@@ -19,15 +22,13 @@ export function Sections() {
         <p data-reveal className="mt-4 max-w-md text-lg text-muted">
           Personalized treatment, prescribed online, delivered in days.
         </p>
-        <p className="absolute bottom-8 text-xs uppercase tracking-[0.2em] text-muted" aria-hidden="true">
-          Scroll
-        </p>
+        <ScrollHint />
       </section>
 
       <section data-frame="formula" className={sideFrame}>
         <div className="max-w-sm">
-          <h2 data-reveal className={heading}>
-            Clinically backed formula
+          <h2 className={heading}>
+            <SplitWords text="Clinically backed formula" />
           </h2>
           <ul className="mt-6 space-y-3 text-muted">
             <li data-reveal>Dosed by a licensed clinician for you.</li>
@@ -39,13 +40,15 @@ export function Sections() {
 
       <section data-frame="how" className={sideFrame}>
         <div className="w-full max-w-sm">
-          <h2 data-reveal className={heading}>
-            How it works
+          <h2 className={heading}>
+            <SplitWords text="How it works" />
           </h2>
           <ol className="mt-6 space-y-3">
             {["Online consult", "Doctor review", "Delivered to your door"].map((step, i) => (
-              <li key={step} data-reveal className="rounded-2xl bg-white/70 p-4 shadow-sm backdrop-blur">
-                <span className="text-xs font-medium text-muted">Step {i + 1}</span>
+              // --lit (0..1) is written by the scroll timeline while the matching part of the vial glows.
+              <li key={step} data-reveal data-step className="step-card relative overflow-hidden rounded-2xl bg-white/70 p-4 pl-5 shadow-sm backdrop-blur">
+                <span aria-hidden="true" className="step-bar absolute inset-y-0 left-0 w-1 origin-top bg-accent" />
+                <span className="text-xs font-medium tabular-nums text-muted">0{i + 1}</span>
                 <p className="mt-1 font-medium">{step}</p>
               </li>
             ))}
@@ -54,18 +57,19 @@ export function Sections() {
       </section>
 
       <section data-frame="unboxing" className={`${sideFrame} md:justify-end`}>
-        <h2 data-reveal className={`${heading} max-w-sm`}>
-          Discreet packaging, tracked delivery.
+        <h2 className={`${heading} max-w-sm`}>
+          <SplitWords text="Discreet packaging, tracked delivery." />
         </h2>
       </section>
 
       <section data-frame="cta" className="flex min-h-svh flex-col items-center justify-end gap-4 px-6 pb-16 text-center">
-        <h2 data-reveal className={heading}>
-          Ready when you are.
+        <h2 className={heading}>
+          <SplitWords text="Ready when you are." />
         </h2>
         <CtaActions />
         <p className="text-xs text-muted">Aurel is a fictional brand. This is a design demo, not medical advice.</p>
       </section>
+      <FrameNav />
     </main>
   );
 }

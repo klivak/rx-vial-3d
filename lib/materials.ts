@@ -32,8 +32,9 @@ export function createGlassMaterial(quality: Quality): Material {
   });
 }
 
-export function createLiquidMaterial(): Material {
-  return new MeshStandardMaterial({ color: "#5A2A08", roughness: 0.2 });
+/** Gelatin shells: glossy, coloured per vertex (see buildCapsules). */
+export function createCapsuleMaterial(): MeshStandardMaterial {
+  return new MeshStandardMaterial({ vertexColors: true, roughness: 0.28 });
 }
 
 /** CylinderGeometry groups: 0 side, 1 top, 2 bottom. Only the side is knurled. */

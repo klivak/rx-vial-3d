@@ -53,6 +53,7 @@ export function SceneLayer() {
         <source media="(max-width: 767px)" srcSet={asset("/poster-mobile.webp")} />
         <img src={asset("/poster-desktop.webp")} alt="" fetchPriority="high" className="h-full w-full object-cover" />
       </picture>
+      <div className="studio-light absolute inset-0" />
       {webgl && <Experience onReady={() => setReady(true)} onLost={() => setReady(false)} />}
     </div>
   );
