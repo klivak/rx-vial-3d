@@ -66,6 +66,8 @@ export function createLabelTexture(size: 512 | 1024 = 1024): CanvasTexture {
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
   texture.anisotropy = 4;
+  // GLTFExporter embeds this as JPEG instead of PNG, keeping the AR model small.
+  texture.userData.mimeType = "image/jpeg";
   cache.set(size, texture);
   // Web fonts may land after the first draw; redraw once they are ready.
   document.fonts?.ready.then(() => {

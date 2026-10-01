@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
   basePath,
   assetPrefix: basePath || undefined,
   trailingSlash: true,
+  // *.dev.tsx routes (the AR model exporter) exist only in development and never ship.
+  pageExtensions: isProd ? ["tsx", "ts"] : ["tsx", "ts", "dev.tsx"],
   images: { unoptimized: true },
   env: { NEXT_PUBLIC_BASE_PATH: basePath },
 };
