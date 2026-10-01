@@ -2,7 +2,7 @@
 
 Scroll-driven 3D product page for **Aurel**, a fictional telehealth brand: an amber Rx vial, a five-frame camera story, an unboxing, a cap colour configurator and "View in AR" that puts the vial on your table at real size.
 
-**Live:** https://klivak.github.io/rx-vial-3d/ (open it on a phone)
+**Live demo:** [klivak.github.io/rx-vial-3d](https://klivak.github.io/rx-vial-3d/) (open it on a phone)
 
 Stack: Next.js 15 (static export) · React Three Fiber · Three.js · GSAP ScrollTrigger · Tailwind CSS · Playwright · GitHub Pages.
 
