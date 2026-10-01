@@ -4,7 +4,7 @@ const buttonBase =
 export function Sections() {
   return (
     <main id="content" className="relative z-10">
-      <section data-frame="hero" className="flex min-h-svh flex-col items-center justify-center px-6 text-center">
+      <section data-frame="hero" className="flex min-h-svh flex-col items-center justify-start px-6 pt-[12vh] text-center">
         <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted">Aurel Health</p>
         <h1 className="mt-4 max-w-xl text-4xl font-semibold tracking-tight sm:text-6xl">Care that comes to you.</h1>
         <p className="mt-4 max-w-md text-lg text-muted">Personalized treatment, prescribed online, delivered in days.</p>
