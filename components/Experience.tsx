@@ -2,6 +2,8 @@
 
 import { AdaptiveDpr, ContactShadows, Environment, Lightformer, PerformanceMonitor, Stats } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
+import { CameraRig } from "@/components/CameraRig";
+import { ScrollTimeline } from "@/components/ScrollTimeline";
 import { Vial } from "@/components/Vial";
 import { setQuality, useQuality } from "@/lib/quality";
 
@@ -28,13 +30,14 @@ export default function Experience({ onReady }: { onReady?: () => void }) {
       dpr={quality === "high" ? [1, 2] : [1, 1.5]}
       camera={{ position: [0, 0.06, 0.42], fov: 30, near: 0.01, far: 10 }}
       gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-      onCreated={({ camera }) => {
-        camera.lookAt(0, 0.07, 0);
+      onCreated={() => {
         requestAnimationFrame(() => onReady?.());
       }}
     >
       <PerformanceMonitor onDecline={() => setQuality("low")} onIncline={() => setQuality("high")} flipflops={3} />
       <AdaptiveDpr pixelated={false} />
+      <CameraRig />
+      <ScrollTimeline />
       <Studio />
       <Vial />
       <ContactShadows opacity={0.4} scale={0.3} blur={2.4} far={0.1} resolution={256} frames={1} color="#3B2A1A" />

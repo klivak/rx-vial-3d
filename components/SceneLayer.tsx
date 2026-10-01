@@ -22,7 +22,7 @@ export function SceneLayer() {
   useEffect(() => setWebgl(hasWebGL()), []);
 
   return (
-    <div className="fixed inset-0 z-0" aria-hidden="true">
+    <div id="scene-layer" className="fixed inset-0 z-0" aria-hidden="true">
       <div
         className={`absolute inset-0 transition-opacity duration-500 ${ready ? "opacity-0" : "opacity-100"}`}
         style={{ background: "radial-gradient(60% 45% at 50% 62%, #E9D9C4 0%, var(--background) 70%)" }}

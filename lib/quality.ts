@@ -5,6 +5,8 @@ export type Quality = "high" | "low" | "ar";
 
 function initialQuality(): Quality {
   if (typeof navigator === "undefined") return "low";
+  const forced = new URLSearchParams(window.location.search).get("quality");
+  if (forced === "high" || forced === "low") return forced;
   const mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const weakCpu = (navigator.hardwareConcurrency ?? 8) <= 4;
   return mobile || weakCpu ? "low" : "high";
