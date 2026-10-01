@@ -2,10 +2,14 @@
 
 import { AdaptiveDpr, ContactShadows, Environment, Lightformer, PerformanceMonitor, Stats } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
+import { useState } from "react";
+import { Box } from "@/components/Box";
 import { CameraRig } from "@/components/CameraRig";
+import { Orbit } from "@/components/Orbit";
 import { ScrollTimeline } from "@/components/ScrollTimeline";
 import { Vial } from "@/components/Vial";
 import { setQuality, useQuality } from "@/lib/quality";
+import { BOX } from "@/lib/scene/buildBox";
 
 const debug = typeof window !== "undefined" && new URLSearchParams(window.location.search).has("debug");
 
@@ -24,6 +28,8 @@ function Studio() {
 
 export default function Experience({ onReady }: { onReady?: () => void }) {
   const quality = useQuality();
+  const [orbit, setOrbit] = useState(false);
+
   return (
     <Canvas
       frameloop="demand"
@@ -36,11 +42,15 @@ export default function Experience({ onReady }: { onReady?: () => void }) {
     >
       <PerformanceMonitor onDecline={() => setQuality("low")} onIncline={() => setQuality("high")} flipflops={3} />
       <AdaptiveDpr pixelated={false} />
-      <CameraRig />
-      <ScrollTimeline />
+      <CameraRig enabled={!orbit} />
+      <ScrollTimeline onOrbit={setOrbit} />
+      {orbit && <Orbit />}
       <Studio />
       <Vial />
-      <ContactShadows opacity={0.4} scale={0.3} blur={2.4} far={0.1} resolution={256} frames={1} color="#3B2A1A" />
+      <Box />
+      {/* Vial shadow redraws whenever the demand frameloop renders (so the lift reads); the box never moves on the floor, so its shadow is baked once. */}
+      <ContactShadows opacity={0.45} scale={0.14} blur={2.2} far={0.06} resolution={256} color="#3B2A1A" />
+      <ContactShadows position={[BOX.position[0], 0, BOX.position[2]]} opacity={0.4} scale={0.2} blur={2.6} far={0.06} resolution={256} frames={2} color="#3B2A1A" />
       {debug && <Stats />}
     </Canvas>
   );

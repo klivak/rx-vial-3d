@@ -1,15 +1,16 @@
 "use client";
 
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo } from "react";
 import { Color, type MeshStandardMaterial } from "three";
+import { capColorValue, getCapColor, useCapColor } from "@/lib/capColor";
 import { useQuality } from "@/lib/quality";
 import { buildVial } from "@/lib/scene/buildVial";
 import { sceneState } from "@/lib/sceneState";
-import { theme } from "@/lib/theme";
 
 const GLOW = new Color("#FFC890");
 const SWAY = (2 / 180) * Math.PI;
+const capTarget = new Color();
 
 function setGlow(materials: MeshStandardMaterial[], amount: number) {
   for (const m of materials) {
@@ -20,13 +21,17 @@ function setGlow(materials: MeshStandardMaterial[], amount: number) {
 
 export function Vial() {
   const quality = useQuality();
-  const parts = useMemo(() => buildVial({ quality, capColor: theme.capColors[0].value }), [quality]);
+  const capColor = useCapColor();
+  // Built with whatever colour is current; later changes are animated below instead of rebuilding.
+  const parts = useMemo(() => buildVial({ quality, capColor: capColorValue(getCapColor()) }), [quality]);
   useEffect(() => parts.dispose, [parts]);
+  const invalidate = useThree((s) => s.invalidate);
+  useEffect(() => invalidate(), [capColor, invalidate]);
 
   const capMaterials = parts.cap.material as MeshStandardMaterial[];
   const labelMaterial = parts.label.material as MeshStandardMaterial;
 
-  useFrame(({ clock, invalidate }) => {
+  useFrame(({ clock, invalidate }, delta) => {
     const s = sceneState;
     // Idle sway (+-2 degrees) is weighted by `idle`, so it fades in and out with the scroll instead of popping.
     const sway = Math.sin(clock.elapsedTime * 0.6) * SWAY * s.idle;
@@ -34,7 +39,17 @@ export function Vial() {
     parts.group.position.y = s.vialLift;
     setGlow(capMaterials, s.hCap);
     setGlow([labelMaterial], s.hLabel);
-    if (s.idle > 0.001) invalidate();
+
+    // ~300 ms exponential ease toward the picked cap colour.
+    capTarget.set(capColorValue(capColor));
+    const k = 1 - Math.exp(-delta * 12);
+    let settling = false;
+    for (const m of new Set(capMaterials)) {
+      m.color.lerp(capTarget, k);
+      if (Math.abs(m.color.r - capTarget.r) + Math.abs(m.color.g - capTarget.g) + Math.abs(m.color.b - capTarget.b) > 0.002) settling = true;
+    }
+
+    if (s.idle > 0.001 || settling) invalidate();
   });
 
   return <primitive object={parts.group} />;

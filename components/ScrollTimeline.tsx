@@ -11,6 +11,8 @@ import { theme } from "@/lib/theme";
 
 gsap.registerPlugin(ScrollTrigger);
 
+const ORBIT_FROM = 0.97;
+
 const bgLight = new Color(theme.background);
 const bgDeep = new Color(theme.backgroundDeep);
 const bg = new Color();
@@ -41,14 +43,21 @@ function revealText(reduced: boolean) {
   });
 }
 
-function buildScrubTimeline(list: FrameState[], invalidate: () => void) {
+function buildScrubTimeline(list: FrameState[], invalidate: () => void, onOrbit: (on: boolean) => void) {
   applyFrame(list[0]);
   const tl = gsap.timeline({
     defaults: { ease: "power2.inOut" },
-    scrollTrigger: { trigger: "#content", start: "top top", end: "bottom bottom", scrub: 0.9 },
+    scrollTrigger: {
+      trigger: "#content",
+      start: "top top",
+      end: "bottom bottom",
+      scrub: 0.9,
+    },
     onUpdate: () => {
       syncBackground();
       invalidate();
+      // Uses the scrubbed timeline progress, not the raw scroll position: finger rotation starts only once the camera has actually settled on the last frame.
+      onOrbit(tl.progress() > ORBIT_FROM);
     },
   });
   for (let i = 1; i < list.length; i++) {
@@ -71,7 +80,7 @@ function buildScrubTimeline(list: FrameState[], invalidate: () => void) {
 }
 
 /** Reduced motion: no camera travel. Each frame cuts to its final state behind a short fade of the canvas. */
-function buildReducedMotion(list: FrameState[], invalidate: () => void) {
+function buildReducedMotion(list: FrameState[], invalidate: () => void, onOrbit: (on: boolean) => void) {
   const layer = document.getElementById("scene-layer");
   const cut = (state: FrameState) => {
     gsap.to(layer, {
@@ -91,13 +100,19 @@ function buildReducedMotion(list: FrameState[], invalidate: () => void) {
       trigger: section,
       start: "top center",
       end: "bottom center",
-      onEnter: () => cut(list[i]),
-      onEnterBack: () => cut(list[i]),
+      onEnter: () => {
+        cut(list[i]);
+        onOrbit(i === list.length - 1);
+      },
+      onEnterBack: () => {
+        cut(list[i]);
+        onOrbit(i === list.length - 1);
+      },
     });
   });
 }
 
-export function ScrollTimeline() {
+export function ScrollTimeline({ onOrbit }: { onOrbit: (on: boolean) => void }) {
   const invalidate = useThree((s) => s.invalidate);
 
   useEffect(() => {
@@ -112,15 +127,15 @@ export function ScrollTimeline() {
       (ctx) => {
         const { mobile, reduced } = ctx.conditions as { mobile: boolean; reduced: boolean };
         const list = frames[mobile ? "mobile" : "desktop"];
-        if (reduced) buildReducedMotion(list, invalidate);
-        else buildScrubTimeline(list, invalidate);
+        if (reduced) buildReducedMotion(list, invalidate, onOrbit);
+        else buildScrubTimeline(list, invalidate, onOrbit);
         revealText(reduced);
         syncBackground();
         invalidate();
       },
     );
     return () => mm.revert();
-  }, [invalidate]);
+  }, [invalidate, onOrbit]);
 
   return null;
 }

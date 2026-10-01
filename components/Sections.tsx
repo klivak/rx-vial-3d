@@ -1,14 +1,14 @@
-const buttonBase =
-  "inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+import { CtaActions } from "@/components/CtaActions";
 
 const heading = "text-3xl font-semibold tracking-tight sm:text-4xl";
 
 // On phones text sits in the top half of each frame and the model in the bottom half; on wider screens text moves to the side.
 const sideFrame = "flex min-h-svh items-start px-6 pt-[12vh] md:items-center md:px-16 md:pt-0";
 
+// The text layer lets pointer events fall through to the canvas (for the last-frame turntable); only section content catches them.
 export function Sections() {
   return (
-    <main id="content" className="relative z-10">
+    <main id="content" className="pointer-events-none relative z-10 *:*:pointer-events-auto">
       <section data-frame="hero" className="relative flex min-h-svh flex-col items-center justify-start px-6 pt-[12vh] text-center">
         <p data-reveal className="text-sm font-medium uppercase tracking-[0.2em] text-muted">
           Aurel Health
@@ -63,14 +63,7 @@ export function Sections() {
         <h2 data-reveal className={heading}>
           Ready when you are.
         </h2>
-        <div data-reveal className="flex flex-wrap justify-center gap-3">
-          <a href="#" className={`${buttonBase} bg-foreground text-background hover:bg-accent`}>
-            Start your visit
-          </a>
-          <button type="button" className={`${buttonBase} border border-foreground/20 hover:bg-foreground/5`}>
-            View in AR
-          </button>
-        </div>
+        <CtaActions />
         <p className="text-xs text-muted">Aurel is a fictional brand. This is a design demo, not medical advice.</p>
       </section>
     </main>
