@@ -16,7 +16,7 @@ for (const [name, opts] of [
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(url, { waitUntil: "networkidle" });
   await page.evaluate((f) => window.scrollTo(0, (document.body.scrollHeight - innerHeight) * f), scroll);
-  await page.waitForTimeout(2500);
+  await page.waitForTimeout(4000);
   await page.screenshot({ path: `shots/${name}-${scroll}.png` });
   console.log(name, errors.length ? errors : "no errors");
   await page.close();

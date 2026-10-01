@@ -53,9 +53,9 @@ export const frames: Record<"desktop" | "mobile", FrameState[]> = {
   mobile: [
     f({ radius: 0.5, targetY: 0.088, vialRotY: -0.5, idle: 1 }),
     f({ radius: 0.3, camY: 0.04, targetY: 0.065 }),
-    f({ azimuth: 1.6, radius: 0.7, camY: 0.15, targetX: 0.05, targetY: 0.115, targetZ: -0.03, vialRotY: 0.6, boxIn: 1, hBox: 1 }),
-    f({ azimuth: 0.6, radius: 0.72, camY: 0.22, targetX: 0.065, targetY: 0.075, targetZ: -0.03, vialRotY: 0.4, vialLift: 0.012, boxIn: 1, boxLid: 1 }),
-    f({ azimuth: 0.25, radius: 0.78, camY: 0.1, targetX: 0.045, targetY: 0.03, vialRotY: 0.1, boxIn: 1, boxLid: 1, bgTone: 1, idle: 1 }),
+    f({ azimuth: 1.6, radius: 0.8, camY: 0.15, targetX: 0.04, targetY: 0.115, targetZ: -0.03, vialRotY: 0.6, boxIn: 1, hBox: 1 }),
+    f({ azimuth: 0.6, radius: 0.95, camY: 0.22, targetX: 0.075, targetY: 0.085, targetZ: -0.03, vialRotY: 0.4, vialLift: 0.012, boxIn: 1, boxLid: 1 }),
+    f({ azimuth: 0.25, radius: 0.9, camY: 0.1, targetX: 0.065, targetY: 0.035, vialRotY: 0.1, boxIn: 1, boxLid: 1, bgTone: 1, idle: 1 }),
   ],
 };
 
