@@ -10,7 +10,8 @@
     "serve": "node scripts/serve-out.mjs",
     "export-models": "node scripts/export-models.mjs",
     "check-budgets": "node scripts/check-budgets.mjs",
-    "make-poster": "node scripts/make-poster.mjs"
+    "make-poster": "node scripts/make-poster.mjs",
+    "test": "playwright test"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
