@@ -100,14 +100,13 @@ export function OrbitRings() {
   );
 }
 
-const SCORE_R = 0.98;
+const SCORE_R = 0.94;
 const SCORE_W = 0.045;
 const SCORE_SEGMENTS = 160;
-const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
 
 /**
  * Report screen: the sample report's score ring, drawn around the button. A faint full track, and an arc in the report's blue to
- * violet that runs clockwise from the top up to the sample score as the button arrives, with a glowing head at its tip.
+ * violet that runs clockwise from the top up to the sample score while the report screen scrolls by, with a glowing head at its tip.
  * Lives in the button's root group, so it stays flat to the viewer while the button turns.
  */
 export function ScoreRing() {
@@ -162,7 +161,8 @@ export function ScoreRing() {
     parts.group.visible = amount > 0.01;
     if (!parts.group.visible) return;
     const fade = Math.min(1, amount * 3);
-    const progress = (ytCopy.report.score / 100) * easeOutCubic(amount);
+    const draw = Math.min(1, Math.max(0, ytState.scoreDraw));
+    const progress = (ytCopy.report.score / 100) * draw * draw * (3 - 2 * draw);
     parts.arc.geometry.setDrawRange(0, 6 * Math.round(progress * SCORE_SEGMENTS));
     (parts.track.material as MeshBasicMaterial).opacity = 0.1 * fade;
     (parts.arc.material as MeshBasicMaterial).opacity = 0.95 * fade;

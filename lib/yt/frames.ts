@@ -23,8 +23,10 @@ export type YtFrame = {
   link: number;
   /** Orbit rings with running lights and a slow pulse of rings around the button (the tools screen). */
   orbit: number;
-  /** Report screen: a score ring around the button draws itself up to the sample score. */
+  /** Report screen: opacity of the score ring around the button. */
   score: number;
+  /** How far the score ring has drawn towards the sample score, 0..1; scrubbed while the report screen scrolls by (see tracks). */
+  scoreDraw: number;
   /** Competitors screen: a radar behind the button sweeps over rival channels. */
   radar: number;
 };
@@ -35,12 +37,13 @@ export type YtFrame = {
  */
 export type YtTrack = Partial<YtFrame>;
 
-const base = { fill: 1, tier: 0, glow: 1, idle: 1, scan: 0, link: 0, orbit: 0, score: 0, radar: 0 };
+const base = { fill: 1, tier: 0, glow: 1, idle: 1, scan: 0, link: 0, orbit: 0, score: 0, scoreDraw: 0, radar: 0 };
 
 const hero: YtFrame = { ...base, x: 0.5, y: -0.02, scale: 0.36, rotX: 0.1, rotY: -0.42, rotZ: 0.04 };
 const problem: YtFrame = { ...base, x: -0.5, y: 0.02, scale: 0.36, rotX: 0.22, rotY: 0.62, rotZ: -0.16, fill: 0, glow: 0.15, idle: 0.6 };
 const scan: YtFrame = { ...base, x: 0, y: -0.1, scale: 0.28, rotX: 0.06, rotY: -0.78, rotZ: 0, fill: 0, glow: 0.4, idle: 0.5, scan: 1 };
-const report: YtFrame = { ...base, x: -0.55, y: 0.02, scale: 0.32, rotX: 0.12, rotY: 0.5, rotZ: -0.05, score: 1 };
+// Smaller and further left than the other screens, so the score ring around it clears the report card in the right column.
+const report: YtFrame = { ...base, x: -0.58, y: 0.02, scale: 0.27, rotX: 0.12, rotY: 0.5, rotZ: -0.05, score: 1 };
 /** Parked above the viewport, spun away; idle 0 so the canvas stops drawing while nothing is visible. */
 const away: YtFrame = { ...base, x: 0.15, y: 1.7, scale: 0.22, rotX: -0.4, rotY: 2.6, rotZ: 0.25, glow: 0, idle: 0 };
 const competitors: YtFrame = { ...base, x: -0.6, y: -0.02, scale: 0.24, rotX: 0.1, rotY: 0.7, rotZ: -0.08, glow: 0.7, radar: 1 };
@@ -73,8 +76,12 @@ export const ytFrames: Record<"desktop" | "mobile", YtFrame[]> = {
  */
 export const ytSpans: Partial<Record<number, number>> = { 10: 1.5 };
 
-/** In-section tracks by screen index: the scan refills the button, the milestones turn it silver, gold, then diamond. */
+/**
+ * In-section tracks by screen index: the scan refills the button, the score ring draws while the report scrolls by (done before the
+ * screen leaves), the milestones turn it silver, gold, then diamond.
+ */
 export const ytTracks: Partial<Record<number, YtTrack>> = {
   2: { fill: 1, glow: 0.9 },
+  3: { scoreDraw: 1 },
   9: { tier: 3 },
 };

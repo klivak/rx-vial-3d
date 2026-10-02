@@ -158,8 +158,9 @@ export function PlayButton() {
     p.press *= Math.exp(-delta * 5);
     if (p.press < 1e-3) p.press = 0;
 
-    // Frame scale is a share of the screen height, capped by the column width so narrow laptops get a smaller button.
-    const size = Math.min(s.scale * vp.height, buttonMaxHeight(screen.width) * (vp.height / screen.height));
+    // Frame scale is a share of the screen height, capped by the column width so narrow laptops get a smaller button. The cap is
+    // tighter while the score ring shows, so the ring around the button stays clear of the report card in the right column.
+    const size = Math.min(s.scale * vp.height, buttonMaxHeight(screen.width) * (1 - 0.22 * s.score) * (vp.height / screen.height));
     const now = performance.now();
     // 0 until the loader lifts, then 1 over INTRO_MS: rise and spin first, the liquid follows, the ring marks the landing.
     const intro = ytIntro.at < 0 ? 0 : clamp01((now - ytIntro.at) / INTRO_MS);
