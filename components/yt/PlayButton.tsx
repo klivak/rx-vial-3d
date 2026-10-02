@@ -6,7 +6,7 @@ import { AdditiveBlending, CanvasTexture, Color, Group, Mesh, MeshBasicMaterial,
 import { parallax, startParallax } from "@/lib/parallax";
 import { getQuality } from "@/lib/quality";
 import { buildPlayButton, buildRippleGeometry, PLAY_BUTTON_FRONT_Z } from "@/lib/yt/buildPlayButton";
-import { OrbitRings, PainWaves, Radar, ScoreRing } from "@/components/yt/ButtonFx";
+import { OrbitRings, PainWaves, Radar, ScoreRing, scoreArc, scoreBreath } from "@/components/yt/ButtonFx";
 import { Sparkles } from "@/components/yt/Sparkles";
 import { AUDIT_URL } from "@/lib/yt/copy";
 import { applyFinish } from "@/lib/yt/finishes";
@@ -29,6 +29,11 @@ let lastPulse = -Infinity;
 let rippleGain = 1;
 /** Entrance after the loader: the button rises and swings in grey, the red pours in, and it lands with a ring. */
 const INTRO_MS = 1800;
+/** Radians the button leans towards the score ring's head while it draws. */
+const SCORE_LEAN = 0.14;
+/** Clock time the score ring last finished drawing (the button pops and rings); re-armed once the ring rolls back. */
+let scoreLandAt = -Infinity;
+let scoreLanded = false;
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
@@ -179,19 +184,32 @@ export function PlayButton() {
       p.rippleAt = t;
       rippleGain = 0.5;
     }
+    // Report screen: the button watches the score ring's head go round, and when the score lands it pops with a ring, like a stamp.
+    const arc = scoreArc();
+    const drawn = clamp01(s.scoreDraw);
+    if (!scoreLanded && s.score > 0.5 && drawn > 0.98) {
+      scoreLanded = true;
+      scoreLandAt = t;
+      p.rippleAt = t;
+      rippleGain = 0.7;
+    } else if (scoreLanded && drawn < 0.9) scoreLanded = false;
+    const landAge = t - scoreLandAt;
+    const pop = landAge < 1.2 ? Math.exp(-landAge * 4.5) * Math.sin(landAge * 13) * 0.08 : 0;
+    // Eases in over the first stretch of the arc, so the lean does not jump when the ring starts.
+    const lean = s.score * SCORE_LEAN * Math.min(1, arc * 8);
     root.current.position.set(
       (s.x * vp.width * columnShare(screen.width)) / 2,
       (s.y * vp.height) / 2 + Math.sin(t * 0.9) * 0.025 * s.idle * size - (1 - arrive) * 0.45 * size,
       0,
     );
-    root.current.scale.setScalar(size * (1 + p.hover * 0.04 - p.press * 0.06) * (0.4 + 0.6 * easeOutBack(clamp01(intro / 0.75))));
+    root.current.scale.setScalar(size * (1 + p.hover * 0.04 - p.press * 0.06 + pop) *(0.4 + 0.6 * easeOutBack(clamp01(intro / 0.75))));
 
     // Award metals mirror the studio: a big tilt swings coloured reflections across them, so the pointer and sway calm down there.
     const calm = 1 - Math.min(1, s.tier) * 0.75;
     tilt.current.rotation.set(
-      s.rotX + smooth.y * TILT_X * calm + Math.sin(t * 0.7) * 0.035 * s.idle + (1 - arrive) * 0.35,
+      s.rotX + smooth.y * TILT_X * calm + Math.sin(t * 0.7) * 0.035 * s.idle + (1 - arrive) * 0.35 - Math.cos(arc * Math.PI * 2) * lean,
       // The entrance swings in from the other side rather than spinning: the face stays towards the camera from the first frame.
-      s.rotY + smooth.x * TILT_Y * calm + Math.sin(t * 0.5) * 0.09 * s.idle * calm + (1 - arrive) * 0.95,
+      s.rotY + smooth.x * TILT_Y * calm + Math.sin(t * 0.5) * 0.09 * s.idle * calm + (1 - arrive) * 0.95 + Math.sin(arc * Math.PI * 2) * lean,
       s.rotZ + Math.sin(t * 0.43) * 0.02 * s.idle,
     );
     press.current.scale.z = 1 - p.hover * 0.12 - p.press * 0.3;
@@ -206,7 +224,9 @@ export function PlayButton() {
     triangleTint.copy(button.triangleMaterial.color);
     button.triangleMaterial.color.copy(whiteDim).lerp(triangleTint, 0.35 + 0.65 * fill);
     // A little self-light keeps the triangle reading as white against the lacquer even when it faces away from the softbox.
-    button.triangleMaterial.emissiveIntensity = (triangleGlow + p.hover * 0.2 + p.press * 0.5) * (0.3 + 0.7 * fill);
+    // Once the score has landed the triangle breathes with the ring's head, and flares with the pop.
+    const scoreGlow = s.score * drawn * drawn * (scoreBreath(t) * 0.35 + Math.max(0, pop) * 6);
+    button.triangleMaterial.emissiveIntensity = (triangleGlow + p.hover * 0.2 + p.press * 0.5 + scoreGlow) * (0.3 + 0.7 * fill);
 
     // While the tools orbit it, the button sends out a ring of its own every few seconds, like a signal.
     if (s.orbit > 0.5 && t - lastPulse > ORBIT_PULSE) {

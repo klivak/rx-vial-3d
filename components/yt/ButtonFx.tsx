@@ -104,6 +104,15 @@ const SCORE_R = 0.94;
 const SCORE_W = 0.045;
 const SCORE_SEGMENTS = 160;
 
+/** How far round the score ring has drawn, 0..score/100: the report scroll eased in and out. The button reads it to follow the head. */
+export function scoreArc() {
+  const draw = Math.min(1, Math.max(0, ytState.scoreDraw));
+  return (ytCopy.report.score / 100) * draw * draw * (3 - 2 * draw);
+}
+
+/** The ring head's slow breath once drawn, 0.5..1; the button's triangle glows with it. */
+export const scoreBreath = (t: number) => 0.75 + 0.25 * Math.sin(t * 2.2);
+
 /**
  * Report screen: the sample report's score ring, drawn around the button. A faint full track, and an arc in the report's blue to
  * violet that runs clockwise from the top up to the sample score while the report screen scrolls by, with a glowing head at its tip.
@@ -161,8 +170,7 @@ export function ScoreRing() {
     parts.group.visible = amount > 0.01;
     if (!parts.group.visible) return;
     const fade = Math.min(1, amount * 3);
-    const draw = Math.min(1, Math.max(0, ytState.scoreDraw));
-    const progress = (ytCopy.report.score / 100) * draw * draw * (3 - 2 * draw);
+    const progress = scoreArc();
     parts.arc.geometry.setDrawRange(0, 6 * Math.round(progress * SCORE_SEGMENTS));
     (parts.track.material as MeshBasicMaterial).opacity = 0.1 * fade;
     (parts.arc.material as MeshBasicMaterial).opacity = 0.95 * fade;
@@ -170,7 +178,7 @@ export function ScoreRing() {
     parts.head.position.set(Math.sin(a) * SCORE_R, Math.cos(a) * SCORE_R, 0.01);
     parts.halo.position.copy(parts.head.position);
     // The head breathes slowly once the ring has drawn, so the score feels live.
-    const breath = 0.75 + 0.25 * Math.sin(clock.elapsedTime * 2.2);
+    const breath = scoreBreath(clock.elapsedTime);
     (parts.head.material as MeshBasicMaterial).opacity = fade;
     (parts.halo.material as MeshBasicMaterial).opacity = 0.45 * fade * breath;
     parts.halo.scale.setScalar(0.85 + 0.3 * breath);
