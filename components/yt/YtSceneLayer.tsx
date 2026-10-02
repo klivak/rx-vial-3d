@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { PlayMark } from "@/components/yt/PlayMark";
 import { YtDotField } from "@/components/yt/YtDotField";
 import { YtLoader } from "@/components/yt/YtLoader";
+import { useQuality } from "@/lib/quality";
 import { startSmoothScroll, unlockScroll } from "@/lib/yt/smoothScroll";
 import { BUTTON_IN_AT, LOADER_UNMOUNT_AT, TEXT_IN_AT } from "@/lib/yt/introTiming";
 import { startYtIntro } from "@/lib/yt/state";
@@ -39,6 +40,12 @@ export function YtSceneLayer() {
   const [loaderGone, setLoaderGone] = useState(false);
   // Real milestones for the loader bar: page hydrated, 3D code downloaded, first frame drawn.
   const [progress, setProgress] = useState(0);
+  const quality = useQuality();
+
+  // Lets the CSS swap the costliest backdrop effects (glass blur, blended grain) for flat look-alikes on phones and slow machines.
+  useEffect(() => {
+    document.documentElement.dataset.quality = quality;
+  }, [quality]);
 
   useEffect(() => {
     history.scrollRestoration = "manual";

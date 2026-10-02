@@ -34,6 +34,13 @@ const SCORE_LEAN = 0.14;
 /** Clock time the score ring last finished drawing (the button pops and rings); re-armed once the ring rolls back. */
 let scoreLandAt = -Infinity;
 let scoreLanded = false;
+/**
+ * When the slow float is the only thing moving, frames come ~30 a second instead of at the display rate (60–120): the button drifts
+ * well under a pixel per frame there, so nothing reads as choppy, and the GPU does a quarter to half the work. A frame lands on the
+ * next vsync after the timer, so the timer is a little shorter than 1000 / 30.
+ */
+const IDLE_FRAME_MS = 29;
+let idleTimer = 0;
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
@@ -271,7 +278,17 @@ export function PlayButton() {
     const filling = fill > 0.001 && fill < 0.999;
     // Under the loader nothing is seen: after the warm-up frame the canvas sleeps until startYtIntro wakes it.
     if (ytIntro.at < 0) return;
-    if (intro < 1 || s.idle > 0 || s.scan > 0.01 || filling || p.press > 0 || ringsLive || settling) invalidate();
+    if (intro < 1 || s.scan > 0.01 || filling || p.press > 0 || ringsLive || settling) invalidate();
+    else if (s.idle > 0) {
+      // Orbit lights, the score head, the radar sweep and the award glints move fast enough to want every frame.
+      const sparkling = Math.min(1, Math.max(0, s.tier - 0.4)) * (1 - s.lacquer) > 0.01;
+      if (s.orbit > 0.01 || s.score > 0.01 || s.radar > 0.01 || sparkling) invalidate();
+      else if (!idleTimer)
+        idleTimer = window.setTimeout(() => {
+          idleTimer = 0;
+          invalidate();
+        }, IDLE_FRAME_MS);
+    }
   });
 
   const over = (e: ThreeEvent<PointerEvent>) => {

@@ -295,6 +295,18 @@ html.lenis, html.lenis body { height: auto; }
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
+/* Phones and slow machines (data-quality="low", lib/quality.ts): the backdrop under the cards (canvas, aurora) changes every frame, so
+   each blurred card was re-blurred every frame. Behind a card the blur only averages faint dots and soft glows, so a flat tint matches it
+   (screenshot diff on a Pixel 7: under 4/255 on average). The header keeps its real blur: text scrolls under it and would show through.
+   The blended grain is dropped there too: overlay at 5% over this dark page changes pixels by 0.03/255 on average, yet costs a
+   full-screen blend pass per frame. */
+html[data-quality="low"] .yt-glass:not(.yt-header-bar) {
+  background: rgb(30 35 54 / 0.3);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+html[data-quality="low"] .yt-grain { display: none; }
+
 /* Buttons: magnetic lean (translate), a light sweep across the primary button on hover, and a press ripple. */
 [data-magnetic] { translate: var(--tx, 0px) var(--ty, 0px); transition: translate 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, background-color 0.3s ease, border-color 0.3s ease; }
 .yt-btn-primary, .yt-btn-ghost { position: relative; overflow: hidden; isolation: isolate; }
