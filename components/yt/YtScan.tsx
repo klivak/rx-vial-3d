@@ -33,7 +33,7 @@ function Group({ index }: { index: number }) {
 export function YtScan() {
   return (
     <section id="scan" data-yt-frame="scan" data-scan className="relative pt-[40svh] md:h-[260svh] md:pt-0">
-      <div className="flex flex-col px-6 pb-24 md:sticky md:top-0 md:h-svh md:px-16 md:pb-10 md:pt-28">
+      <div data-yt-stage className="flex flex-col px-6 pb-24 md:sticky md:top-0 md:h-svh md:px-16 md:pb-10 md:pt-28">
         <div className="-mx-2 rounded-[2rem] bg-background/90 p-5 md:mx-auto md:flex md:w-full md:max-w-[96rem] md:flex-1 md:flex-col md:rounded-none md:bg-transparent md:p-0">
           <SectionHead center eyebrow={c.eyebrow} title={c.title} lead={c.lead} />
           <div className="mt-8 grid flex-1 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(28vw,1fr)_minmax(0,1fr)] md:gap-8">

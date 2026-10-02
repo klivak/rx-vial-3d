@@ -92,7 +92,7 @@ const settled = (list: YtFrame[], i: number): YtFrame => ({ ...list[i], ...ytTra
  */
 function anchored(frame: YtFrame, section: HTMLElement, vh: number): YtFrame {
   const anchor = section.querySelector<HTMLElement>("[data-yt-anchor]");
-  const stage = anchor?.closest<HTMLElement>(".md\:sticky");
+  const stage = anchor?.closest<HTMLElement>("[data-yt-stage]");
   if (!anchor || !stage || getComputedStyle(stage).position !== "sticky") return frame;
   const base = stage.getBoundingClientRect().top;
   const top = anchor.getBoundingClientRect().top - base;
