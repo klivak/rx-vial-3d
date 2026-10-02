@@ -43,7 +43,10 @@ export function YtLoader({ target, done }: { target: number; done: boolean }) {
   useEffect(() => {
     const root = rootRef.current;
     if (!root) return;
-    root.dataset.live = "";
+    // Pick up where the pre-hydration CSS creep (--lp) got to, and shift t0 so the JS creep continues along the same curve.
+    const css = parseFloat(getComputedStyle(root).getPropertyValue("--lp"));
+    const from = Math.max(shown.current, Number.isFinite(css) ? Math.min(css, CREEP_MAX) : 0);
+    shown.current = from;
     const q = <T extends Element>(sel: string) => root.querySelector<T>(sel)!;
     const outline = q<SVGPathElement>("[data-l-outline]");
     const wave = q<SVGGElement>("[data-l-wave]");
@@ -54,8 +57,10 @@ export function YtLoader({ target, done }: { target: number; done: boolean }) {
     const pct = q<HTMLElement>("[data-l-pct]");
     const step = q<HTMLElement>("[data-l-step]");
     const steps = ytCopy.loader.steps;
-    const t0 = performance.now();
-    let last = t0;
+    pct.textContent = String(Math.round(from));
+    root.dataset.live = "";
+    let last = performance.now();
+    const t0 = last - (1 - Math.sqrt(1 - Math.min(from, CREEP_MAX) / CREEP_MAX)) * CREEP_MS;
     let raf = 0;
 
     const frame = (now: number) => {
@@ -85,7 +90,8 @@ export function YtLoader({ target, done }: { target: number; done: boolean }) {
       }
       if (p < 1) raf = requestAnimationFrame(frame);
     };
-    raf = requestAnimationFrame(frame);
+    // Synchronously, so the inline styles take over from the CSS creep in the same frame.
+    frame(last);
     return () => cancelAnimationFrame(raf);
   }, [done]);
 
@@ -152,7 +158,7 @@ export function YtLoader({ target, done }: { target: number; done: boolean }) {
               {ytCopy.loader.steps[0]}
             </span>
             <span className="text-2xl font-semibold tabular-nums tracking-tight">
-              <span data-l-pct>0</span>
+              <span data-l-pct />
               <span className="ml-0.5 text-sm text-muted">%</span>
             </span>
           </div>

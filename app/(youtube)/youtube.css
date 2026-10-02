@@ -87,11 +87,23 @@ html.lenis, html.lenis body { height: auto; }
 .yt-feed-row:nth-child(2) { animation-direction: reverse; margin-left: -120px; }
 .yt-feed-card { width: 220px; aspect-ratio: 16 / 9; border-radius: 14px; flex: none; }
 
-/* The button: liquid surface slides sideways forever; before hydration the outline runs its own loop. */
+/* The button: liquid surface slides sideways forever. */
 @keyframes yt-wave { to { transform: translateX(30px); } }
 .yt-loader-wave { animation: yt-wave 1.6s linear infinite; }
-@keyframes yt-outline { 0% { stroke-dashoffset: 1; } 50% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -1; } }
-.yt-loader:not([data-live]) .yt-loader-outline { animation: yt-outline 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
+
+/* Before hydration the loader already fakes progress: --lp creeps along the same curve as YtLoader's CREEP (ease-out quad to 82 over 3.2 s)
+   and drives the outline, liquid, triangle, bar, knob and number. On hydration YtLoader reads --lp and carries on from there. */
+@property --lp { syntax: "<number>"; inherits: true; initial-value: 0; }
+@property --lpi { syntax: "<integer>"; inherits: true; initial-value: 0; }
+@keyframes yt-creep { to { --lp: 82; --lpi: 82; } }
+.yt-loader:not([data-live]) { animation: yt-creep 3.2s cubic-bezier(0.5, 1, 0.89, 1) both; }
+.yt-loader:not([data-live]) .yt-loader-outline { stroke-dashoffset: max(0, 1 - var(--lp) / 50); }
+.yt-loader:not([data-live]) [data-l-wave] { transform: translateY(calc((1 - var(--lp) / 100) * 21px - 0.5px)) !important; }
+.yt-loader:not([data-live]) [data-l-bar] { transform: scaleX(calc(var(--lp) / 100)) !important; }
+.yt-loader:not([data-live]) [data-l-knob] { left: calc(var(--lp) * 1%) !important; }
+.yt-loader:not([data-live]) [data-l-tri] { opacity: clamp(0, (var(--lp) - 70) / 28, 1) !important; }
+.yt-loader:not([data-live]) [data-l-pct] { counter-reset: lp var(--lpi); }
+.yt-loader:not([data-live]) [data-l-pct]::before { content: counter(lp); }
 .yt-loader-halo {
   position: absolute;
   top: -3rem;
@@ -355,5 +367,5 @@ html:not(.is-loading) .yt-chip[data-intro] { animation-name: yt-chip-in; animati
   .yt-btn-primary, .yt-btn-ghost, .yt-spot, .yt-thumb > div { transition: none; }
   .yt-spot { transform: none; }
   .yt-loader, .yt-loader-fade, .yt-feed { transition-duration: 0.2s; transition-delay: 0s; }
-  .yt-feed-row, .yt-loader-wave, .yt-loader:not([data-live]) .yt-loader-outline, .yt-loader.is-done .yt-loader-mark, .yt-loader.is-done .yt-loader-ring { animation: none; }
+  .yt-feed-row, .yt-loader-wave,.yt-loader.is-done .yt-loader-mark, .yt-loader.is-done .yt-loader-ring { animation: none; }
 }
