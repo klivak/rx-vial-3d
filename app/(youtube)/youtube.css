@@ -225,7 +225,7 @@ html.lenis, html.lenis body { height: auto; }
   padding-bottom: 0.375rem;
 }
 .yt-header-arrow { display: inline-block; transition: transform 0.25s ease; }
-.yt-header-cta:hover .yt-header-arrow { transform: translateX(3px); }
+@media (hover: hover) and (pointer: fine) { .yt-header-cta:hover .yt-header-arrow { transform: translateX(3px); } }
 
 /* Buttons: AIR gradient for the main action, a hairline glass button for the secondary. */
 .yt-btn-primary {
@@ -235,14 +235,14 @@ html.lenis, html.lenis body { height: auto; }
   box-shadow: 0 8px 24px rgb(46 89 231 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.2);
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
 }
-.yt-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 32px rgb(46 89 231 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.25); }
+@media (hover: hover) and (pointer: fine) { .yt-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 12px 32px rgb(46 89 231 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.25); } }
 .yt-btn-ghost {
   color: var(--foreground);
   border: 1px solid rgb(255 255 255 / 0.14);
   background: rgb(255 255 255 / 0.03);
   transition: background-color 0.3s ease, border-color 0.3s ease;
 }
-.yt-btn-ghost:hover { background: rgb(255 255 255 / 0.08); border-color: rgb(255 255 255 / 0.24); }
+@media (hover: hover) and (pointer: fine) { .yt-btn-ghost:hover { background: rgb(255 255 255 / 0.08); border-color: rgb(255 255 255 / 0.24); } }
 .yt-btn-primary:focus-visible, .yt-btn-ghost:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 
 /* "Press the button" sits just under the 3D button, right of centre. */
@@ -295,7 +295,7 @@ html.lenis, html.lenis body { height: auto; }
 /* Screen 5: thumbnails. */
 .yt-thumb { will-change: transform; }
 .yt-thumb > div { box-shadow: 0 10px 30px rgb(0 0 0 / 0.35); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-.yt-thumb:hover > div { transform: translateY(-3px) scale(1.03); }
+@media (hover: hover) and (pointer: fine) { .yt-thumb:hover > div { transform: translateY(-3px) scale(1.03); } }
 
 /* Screen 6: plan cards with a pointer spotlight and tilt. */
 .yt-spot {
@@ -312,7 +312,7 @@ html.lenis, html.lenis body { height: auto; }
   transition: opacity 0.3s;
   background: radial-gradient(280px circle at var(--mx, 50%) var(--my, 50%), rgb(110 139 255 / 0.16), transparent 70%);
 }
-.yt-spot:hover::before { opacity: 1; }
+@media (hover: hover) and (pointer: fine) { .yt-spot:hover::before { opacity: 1; } }
 .yt-plan { background: rgb(255 255 255 / 0.035); border: 1px solid rgb(255 255 255 / 0.08); }
 .yt-plan.is-featured {
   background: linear-gradient(var(--background), var(--background)) padding-box, linear-gradient(160deg, #2e59e7, #7c3aed 60%, rgb(255 255 255 / 0.08)) border-box;
@@ -333,7 +333,7 @@ html.lenis, html.lenis body { height: auto; }
 
 /* Screen 8: tool cards. */
 .yt-tool { transition: border-color 0.3s ease, background-color 0.3s ease; }
-.yt-tool:hover { border-color: rgb(110 139 255 / 0.4); background: rgb(46 89 231 / 0.08); }
+@media (hover: hover) and (pointer: fine) { .yt-tool:hover { border-color: rgb(110 139 255 / 0.4); background: rgb(46 89 231 / 0.08); } }
 .yt-tool-icon { color: #c7d2fe; background: linear-gradient(135deg, rgb(46 89 231 / 0.35), rgb(124 58 237 / 0.35)); }
 
 /* Screen 10: FAQ, a plus that turns into a minus, and a height animation where the browser supports it. */
@@ -371,6 +371,9 @@ html[data-quality="low"] .yt-glass:not(.yt-header-bar) {
   -webkit-backdrop-filter: none;
 }
 html[data-quality="low"] .yt-grain { display: none; }
+/* The header keeps a lighter blur there and on narrow screens: 8px without the saturate pass still hides the text scrolling under it. */
+html[data-quality="low"] .yt-header-bar { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+@media (max-width: 640px) { .yt-header-bar { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); } }
 
 /* Buttons: magnetic lean (translate), a light sweep across the primary button on hover, and a press ripple. */
 [data-magnetic] { translate: var(--tx, 0px) var(--ty, 0px); transition: translate 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, background-color 0.3s ease, border-color 0.3s ease; }
@@ -383,7 +386,7 @@ html[data-quality="low"] .yt-grain { display: none; }
   background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.35) 50%, transparent 65%);
   transform: translateX(-110%);
 }
-.yt-btn-primary:hover::after { transform: translateX(110%); transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1); }
+@media (hover: hover) and (pointer: fine) { .yt-btn-primary:hover::after { transform: translateX(110%); transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1); } }
 @keyframes yt-ripple { from { transform: translate(-50%, -50%) scale(0); opacity: 0.45; } to { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
 .yt-ripple { position: absolute; width: var(--d); height: var(--d); border-radius: 9999px; background: rgb(255 255 255 / 0.5); pointer-events: none; z-index: -1; animation: yt-ripple 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 

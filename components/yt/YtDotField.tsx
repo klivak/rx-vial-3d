@@ -37,10 +37,12 @@ export function YtDotField() {
     /** What the last frame drew for the button tint, so a scroll that does not change it does not redraw ~3,000 dots. */
     const drawn = { bx: 0, by: 0, br: 0, redness: -1 };
 
+    // Sized from the canvas itself: its parent is `h-lvh`, so `innerHeight` (the small viewport on mobile) left a strip of stretched dots.
     const resize = () => {
+      const box = canvas.getBoundingClientRect();
       dpr = Math.min(2, window.devicePixelRatio || 1);
-      w = window.innerWidth;
-      h = window.innerHeight;
+      w = Math.round(box.width);
+      h = Math.round(box.height);
       canvas.width = w * dpr;
       canvas.height = h * dpr;
       cols = Math.ceil(w / GAP) + 1;
@@ -149,8 +151,22 @@ export function YtDotField() {
       wake();
     };
 
+    // One resize per frame; on touch the toolbar showing or hiding only nudges the height, which is not worth rebuilding the field for.
+    let sizing = 0;
+    const touch = !matchMedia("(pointer: fine)").matches;
+    const queueResize = () => {
+      if (sizing) return;
+      sizing = requestAnimationFrame(() => {
+        sizing = 0;
+        const box = canvas.getBoundingClientRect();
+        if (touch && Math.round(box.width) === w && Math.abs(box.height - h) < 120) return;
+        resize();
+      });
+    };
+    const observer = new ResizeObserver(queueResize);
+
     resize();
-    window.addEventListener("resize", resize);
+    observer.observe(canvas);
     window.addEventListener("scroll", scrolled, { passive: true });
     if (!calm) {
       window.addEventListener("pointermove", move, { passive: true });
@@ -158,7 +174,8 @@ export function YtDotField() {
     }
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", resize);
+      cancelAnimationFrame(sizing);
+      observer.disconnect();
       window.removeEventListener("scroll", scrolled);
       window.removeEventListener("pointermove", move);
       document.removeEventListener("pointerleave", leave);

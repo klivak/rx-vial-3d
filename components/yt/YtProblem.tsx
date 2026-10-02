@@ -48,7 +48,7 @@ export function YtProblem() {
                   </span>
                 ))}
               </span>
-              <span className="hidden text-[0.7rem] text-muted sm:inline">{c.chart.label}</span>
+              <span className="hidden text-xs text-muted sm:inline">{c.chart.label}</span>
             </figcaption>
             <svg
               viewBox="0 0 600 220"

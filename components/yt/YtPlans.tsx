@@ -21,7 +21,7 @@ export function YtPlans() {
                 <div className="flex items-start justify-between gap-3">
                   <h3 className="text-lg font-semibold">{tier.name}</h3>
                   {featured && (
-                    <span className="yt-badge rounded-full px-2.5 py-1 text-[0.7rem] font-medium">
+                    <span className="yt-badge rounded-full px-2.5 py-1 text-xs font-medium">
                       {c.popular}
                     </span>
                   )}

@@ -35,10 +35,11 @@ function Card({ thumb, strong }: { thumb: Thumb; strong: boolean }) {
         ) : (
           <>
             <span className="absolute inset-3 rounded-md border border-white/5 bg-white/[0.04]" aria-hidden="true" />
-            <span className="absolute left-3 top-3 max-w-[85%] text-[0.55rem] leading-tight text-white/45">{thumb.text}</span>
+            {/* Deliberately tiny: the weak thumbnail's title is unreadable at feed size, which is the point being made. */}
+            <span aria-hidden="true" className="absolute left-3 top-3 max-w-[85%] text-[0.55rem] leading-tight text-white/45">{thumb.text}</span>
           </>
         )}
-        <span className="absolute bottom-1.5 right-1.5 rounded bg-black/75 px-1 py-px text-[0.6rem] font-medium tabular-nums text-white">{thumb.time}</span>
+        <span aria-hidden="true" className="absolute bottom-1.5 right-1.5 rounded bg-black/75 px-1 py-px text-[0.6rem] font-medium tabular-nums text-white">{thumb.time}</span>
       </div>
       <p className="mt-1.5 flex items-center justify-between text-xs">
         <span className="text-muted">CTR</span>

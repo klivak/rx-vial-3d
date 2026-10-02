@@ -73,7 +73,7 @@ export function YtReport() {
                   <span data-count={c.score} className="text-4xl font-semibold tabular-nums">
                     {c.score}
                   </span>
-                  <span className="text-[0.65rem] uppercase tracking-[0.15em] text-muted">
+                  <span className="text-xs uppercase tracking-[0.15em] text-muted">
                     {c.scoreLabel}
                   </span>
                 </div>

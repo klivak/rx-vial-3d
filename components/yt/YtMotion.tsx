@@ -17,7 +17,7 @@ function reveals() {
     const items = section.querySelectorAll("[data-reveal]");
     const tl = gsap.timeline({ scrollTrigger: { trigger: section, start: "top 55%", toggleActions: "play none none reverse" } });
     if (words.length) tl.from(words, { yPercent: 115, rotate: 3, duration: 0.9, ease: "power4.out", stagger: 0.045 });
-    if (items.length) tl.from(items, { opacity: 0, y: 26, filter: "blur(6px)", duration: 0.9, ease: "power3.out", stagger: 0.08, clearProps: "filter" }, words.length ? "-=0.6" : 0);
+    if (items.length) tl.from(items, { opacity: 0, y: 26, duration: 0.9, ease: "power3.out", stagger: 0.08 }, words.length ? "-=0.6" : 0);
   });
 }
 
@@ -26,9 +26,8 @@ function heroFade() {
   const layer = document.querySelector("[data-hero-fade]");
   if (!layer) return;
   const tl = gsap.timeline({ scrollTrigger: { trigger: layer, start: "top top", end: "+=40%", scrub: 0.5 } });
+  // Opacity and transform only: a scrubbed blur re-filtered the chip cards on every scroll frame, which phones could not keep up with.
   tl.to(layer, { opacity: 0, y: -60, ease: "none" }, 0);
-  // The blur goes on the chip cards only: blurring the whole hero-sized layer re-filtered a full screen on every scroll frame.
-  tl.to(layer.querySelectorAll("[data-chips] > li > span"), { filter: "blur(8px)", ease: "none" }, 0);
 }
 
 /** `[data-draw]` paths draw themselves with the scroll; `[data-light]` items light up in turn while their group crosses the screen. */
@@ -145,7 +144,7 @@ function bench() {
       );
     });
   });
-  tl.from(section.querySelector("[data-bench-insight]"), { opacity: 0, y: 16, filter: "blur(6px)", duration: 0.8, ease: "power3.out", clearProps: "filter" }, "-=0.7");
+  tl.from(section.querySelector("[data-bench-insight]"), { opacity: 0, y: 16, duration: 0.8, ease: "power3.out" }, "-=0.7");
   return () => values.forEach((el, i) => (el.textContent = finals[i]));
 }
 

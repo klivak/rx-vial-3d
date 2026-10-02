@@ -236,7 +236,7 @@ export function YtLoader({ target, done }: { target: number; done: boolean }) {
             </g>
           </svg>
         </div>
-        <p className="yt-loader-fade mt-9 flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.34em] text-muted">
+        <p className="yt-loader-fade mt-9 flex items-center gap-2.5 text-xs font-medium uppercase tracking-[0.34em] text-muted">
           <span className="yt-loader-dot" aria-hidden="true" />
           {ytCopy.loader.label}
         </p>
