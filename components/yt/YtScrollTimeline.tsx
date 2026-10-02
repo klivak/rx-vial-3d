@@ -111,10 +111,15 @@ function buildScrub(list: YtFrame[], invalidate: () => void) {
     });
     // The timeline spans exactly 0..1 of the scroll range.
     tl.to({}, { duration: 1 }, 0);
-    gsap.utils.toArray<HTMLElement>("[data-yt-frame]").forEach((section, i) => {
+    const sections = gsap.utils.toArray<HTMLElement>("[data-yt-frame]");
+    const tops = sections.map((el) => el.getBoundingClientRect().top + window.scrollY);
+    sections.forEach((section, i) => {
       if (!list[i]) return;
-      const top = section.getBoundingClientRect().top + window.scrollY;
-      const arrive = at(top - vh + vh * (ytSpans[i] ?? 0.7));
+      const top = tops[i];
+      // A move never runs into the next one: when the next section starts its move, this one must already have landed, or the next
+      // tween's from-values (this frame's settled pose) snap the button out of a half-finished move (the CTA is shorter than its span).
+      const nextStart = i + 1 < tops.length ? tops[i + 1] - vh : Infinity;
+      const arrive = at(Math.min(top - vh + vh * (ytSpans[i] ?? 0.7), nextStart));
       if (i > 0) {
         const start = at(top - vh);
         const span = Math.max(0.0005, arrive - start);
