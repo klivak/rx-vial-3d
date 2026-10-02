@@ -96,9 +96,14 @@ html.lenis, html.lenis body { height: auto; }
 .yt-feed-row:nth-child(even) { animation-direction: reverse; }
 .yt-feed-card { width: 220px; aspect-ratio: 16 / 9; border-radius: 14px; flex: none; }
 
-/* The button: liquid surface slides sideways forever. */
+/* The button: two liquid layers slide past each other forever, bubbles rise through the red, a sheen crosses the glass now and then. */
 @keyframes yt-wave { to { transform: translateX(30px); } }
 .yt-loader-wave { animation: yt-wave 1.6s linear infinite; }
+.yt-loader-wave.is-back { animation-duration: 2.4s; animation-direction: reverse; }
+@keyframes yt-bubble { 0% { transform: translateY(0); opacity: 0; } 15%, 75% { opacity: 0.55; } 100% { transform: translateY(-15px); opacity: 0; } }
+.yt-loader-bubble { fill: #ffc2cd; animation: yt-bubble var(--s) ease-in var(--d) infinite; }
+@keyframes yt-sheen { 0% { transform: translateX(0); } 60%, 100% { transform: translateX(46px); } }
+.yt-loader-sheen { animation: yt-sheen 3.4s cubic-bezier(0.45, 0, 0.25, 1) 0.8s infinite; }
 
 /* Before hydration the loader already fakes progress: --lp creeps along the same curve as YtLoader's CREEP (ease-out quad to 82 over 3.2 s)
    and drives the outline, liquid, triangle, bar, knob and number. On hydration YtLoader reads --lp and carries on from there. */
@@ -107,7 +112,8 @@ html.lenis, html.lenis body { height: auto; }
 @keyframes yt-creep { to { --lp: 82; --lpi: 82; } }
 .yt-loader:not([data-live]) { animation: yt-creep 3.2s cubic-bezier(0.5, 1, 0.89, 1) both; }
 .yt-loader:not([data-live]) .yt-loader-outline { stroke-dashoffset: max(0, 1 - var(--lp) / 50); }
-.yt-loader:not([data-live]) [data-l-wave] { transform: translateY(calc((1 - var(--lp) / 100) * 21px - 0.5px)) !important; }
+.yt-loader:not([data-live]) [data-l-wave] { transform: translateY(calc(20.5px - var(--lp) / 100 * 22.5px)) !important; }
+.yt-loader:not([data-live]) .yt-loader-halo { --fill: calc(var(--lp) / 100); }
 .yt-loader:not([data-live]) [data-l-bar] { transform: scaleX(calc(var(--lp) / 100)) !important; }
 .yt-loader:not([data-live]) [data-l-knob] { left: calc(var(--lp) * 1%) !important; }
 .yt-loader:not([data-live]) [data-l-tri] { opacity: clamp(0, (var(--lp) - 70) / 28, 1) !important; }
@@ -121,6 +127,8 @@ html.lenis, html.lenis body { height: auto; }
   height: 15rem;
   transform: translateX(-50%);
   background: radial-gradient(closest-side, rgb(255 0 51 / 0.24), transparent);
+  /* Grows with the fill (--fill, 0..1, written by YtLoader); the done state's fade still wins on specificity. */
+  opacity: calc(0.35 + 0.65 * var(--fill, 0));
   pointer-events: none;
 }
 .yt-loader-knob { box-shadow: 0 0 0 4px rgb(255 0 51 / 0.18); }
@@ -168,8 +176,21 @@ html.lenis, html.lenis body { height: auto; }
   -webkit-backdrop-filter: blur(18px) saturate(140%);
 }
 
-/* The header bar is darker than other glass: whole paragraphs scroll underneath it. */
-.yt-header-bar { background: rgb(10 13 26 / 0.62); }
+/* The header bar sits almost clear over the hero, then turns darker than other glass once whole paragraphs scroll underneath it. */
+.yt-header-bar {
+  background: rgb(10 13 26 / 0.18);
+  border-color: rgb(255 255 255 / 0.04);
+  transition: background-color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, padding 0.35s ease;
+}
+.yt-header-bar.is-scrolled {
+  background: rgb(10 13 26 / 0.72);
+  border-color: rgb(255 255 255 / 0.1);
+  box-shadow: 0 10px 40px rgb(0 0 0 / 0.35);
+  padding-top: 0.375rem;
+  padding-bottom: 0.375rem;
+}
+.yt-header-arrow { display: inline-block; transition: transform 0.25s ease; }
+.yt-header-cta:hover .yt-header-arrow { transform: translateX(3px); }
 
 /* Buttons: AIR gradient for the main action, a hairline glass button for the secondary. */
 .yt-btn-primary {
@@ -408,8 +429,8 @@ html:not(.is-loading) .yt-chip[data-intro] { animation-name: yt-chip-in; animati
   .yt-aurora::before, .yt-aurora::after, .yt-chip > span, .yt-now-pulse, html:not(.is-loading) .yt-hl { animation: none; }
   .yt-btn-primary::after { display: none; }
   .yt-live-dot::after { animation: none; }
-  .yt-btn-primary, .yt-btn-ghost, .yt-spot, .yt-thumb > div { transition: none; }
+  .yt-btn-primary, .yt-btn-ghost, .yt-spot, .yt-thumb > div, .yt-header-bar, .yt-header-arrow { transition: none; }
   .yt-spot { transform: none; }
   .yt-loader, .yt-loader-fade, .yt-feed { transition-duration: 0.2s; transition-delay: 0s; }
-  .yt-feed-row, .yt-loader-wave,.yt-loader.is-done .yt-loader-mark, .yt-loader.is-done .yt-loader-ring { animation: none; }
+  .yt-feed-row, .yt-loader-wave, .yt-loader-bubble, .yt-loader-sheen, .yt-loader.is-done .yt-loader-mark, .yt-loader.is-done .yt-loader-ring { animation: none; }
 }
