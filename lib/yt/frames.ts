@@ -15,6 +15,8 @@ export type YtFrame = {
   tier: number;
   /** How far the finish is pulled back from the award metal to red lacquer, 0..1. The call to action turns the diamond straight back to red, without passing through gold and silver again (and the award rows stay lit). */
   lacquer: number;
+  /** Opacity of the button and its glow. It comes in from (and leaves to) off screen faded, so it never covers text at full strength on the way. */
+  show: number;
   /** Strength of the red glow behind the button (CSS). */
   glow: number;
   /** How much the idle float and sway apply. 0 also lets the canvas rest when the button is off screen. */
@@ -39,15 +41,18 @@ export type YtFrame = {
  */
 export type YtTrack = Partial<YtFrame>;
 
-const base = { fill: 1, tier: 0, lacquer: 0, glow: 1, idle: 1, scan: 0, link: 0, orbit: 0, score: 0, scoreDraw: 0, radar: 0 };
+const base = { fill: 1, tier: 0, lacquer: 0, show: 1, glow: 1, idle: 1, scan: 0, link: 0, orbit: 0, score: 0, scoreDraw: 0, radar: 0 };
 
 const hero: YtFrame = { ...base, x: 0.5, y: -0.02, scale: 0.36, rotX: 0.1, rotY: -0.42, rotZ: 0.04 };
 const problem: YtFrame = { ...base, x: -0.5, y: 0.02, scale: 0.36, rotX: 0.22, rotY: 0.62, rotZ: -0.16, fill: 0, glow: 0.15, idle: 0.6 };
 const scan: YtFrame = { ...base, x: 0, y: -0.1, scale: 0.28, rotX: 0.06, rotY: -0.78, rotZ: 0, fill: 0, glow: 0.4, idle: 0.5, scan: 1 };
 // Smaller and further left than the other screens, so the score ring around it clears the report card in the right column.
 const report: YtFrame = { ...base, x: -0.58, y: 0.02, scale: 0.27, rotX: 0.12, rotY: 0.5, rotZ: -0.05, score: 1 };
-/** Parked above the viewport, spun away; idle 0 so the canvas stops drawing while nothing is visible. */
-const away: YtFrame = { ...base, x: 0.15, y: 1.7, scale: 0.22, rotX: -0.4, rotY: 2.6, rotZ: 0.25, glow: 0, idle: 0 };
+/**
+ * Parked above the viewport, spun away; idle 0 so the canvas stops drawing while nothing is visible. Faded out, so the drop back
+ * in (e.g. onto the tools orbit, through the "How it works" steps) only turns solid once the button is below the text.
+ */
+const away: YtFrame = { ...base, x: 0.15, y: 1.7, scale: 0.22, rotX: -0.4, rotY: 2.6, rotZ: 0.25, show: 0, glow: 0, idle: 0 };
 const competitors: YtFrame = { ...base, x: -0.6, y: -0.02, scale: 0.24, rotX: 0.1, rotY: 0.7, rotZ: -0.08, glow: 0.7, radar: 1 };
 const tools: YtFrame = { ...base, x: 0, y: -0.24, scale: 0.22, rotX: 0.08, rotY: 0, rotZ: 0, orbit: 1 };
 /** Faces the viewer like a plaque on a shelf; the metal changes while the section scrolls (see tracks). */

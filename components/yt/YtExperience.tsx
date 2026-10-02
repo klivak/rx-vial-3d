@@ -104,6 +104,7 @@ export default function YtExperience({ onReady, onLost, open }: { onReady: () =>
 
   return (
     <Canvas
+      className="yt-3d"
       frameloop="demand"
       dpr={quality === "high" ? [1, 2] : [1, 1.5]}
       camera={{ position: [0, 0, 4.2], fov: 30, near: 0.1, far: 20 }}

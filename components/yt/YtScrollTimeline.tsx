@@ -11,6 +11,7 @@ import { applyYtFrame, ytState } from "@/lib/yt/state";
 gsap.registerPlugin(ScrollTrigger);
 
 let layer: HTMLElement | null = null;
+let scene: HTMLElement | null = null;
 let layerH = 0;
 let awards: HTMLElement[] | null = null;
 let subs: HTMLElement | null = null;
@@ -40,13 +41,15 @@ function syncCss() {
     measureLayer();
     window.addEventListener("resize", measureLayer);
   }
+  scene ??= document.querySelector<HTMLElement>(".yt-3d");
+  if (scene) put(scene, "show", "opacity", s.show.toFixed(3));
   awards ??= Array.from(document.querySelectorAll<HTMLElement>("[data-award]"));
   if (layer) {
     // The glow moves in pixels with `translate`, so following the button is a compositor move, not a full-screen repaint.
     const w = window.innerWidth;
     put(layer, "gx", "--yt-gx", `${((0.5 + s.x * 0.5 * columnShare(w)) * w).toFixed(1)}px`);
     put(layer, "gy", "--yt-gy", `${((0.5 - s.y * 0.5) * layerH).toFixed(1)}px`);
-    put(layer, "glow", "--yt-glow", s.glow.toFixed(3));
+    put(layer, "glow", "--yt-glow", (s.glow * s.show).toFixed(3));
     put(layer, "health", "--yt-health", s.fill.toFixed(3));
     put(layer, "tier", "--yt-tier", (Math.min(1, s.tier) * (1 - s.lacquer)).toFixed(3));
     put(layer, "glowc", "--yt-glow-c", glowColor(s.tier, s.lacquer));
@@ -115,9 +118,15 @@ function buildScrub(list: YtFrame[], invalidate: () => void) {
       if (i > 0) {
         const start = at(top - vh);
         const span = Math.max(0.0005, arrive - start);
-        const { fill: fromFill, glow: fromGlow, tier: fromTier, lacquer: fromLacquer, ...fromMove } = settled(list, i - 1);
-        const { fill, glow, tier, lacquer, ...move } = list[i];
+        const { fill: fromFill, glow: fromGlow, tier: fromTier, lacquer: fromLacquer, show: fromShow, ...fromMove } = settled(list, i - 1);
+        const { fill, glow, tier, lacquer, show, ...move } = list[i];
         tl!.fromTo(ytState, fromMove, { ...move, duration: span, ease: "power2.inOut", immediateRender: false }, start);
+        // Fading in, the button stays faint until it has nearly landed (it drops in over the previous screen's text); fading out,
+        // it goes early.
+        if (show !== fromShow) {
+          const ease = show > fromShow ? "power3.in" : "power2.out";
+          tl!.fromTo(ytState, { show: fromShow }, { show, duration: span, ease, immediateRender: false }, start);
+        }
         // Colour and finish follow a little behind the motion: the button turns first, then drains, fills or changes metal.
         tl!.fromTo(
           ytState,
