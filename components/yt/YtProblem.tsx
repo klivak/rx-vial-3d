@@ -145,7 +145,7 @@ export function YtProblem() {
 
           <ul data-light-group className="mt-8 space-y-2">
             {c.pains.map((pain) => (
-              <li key={pain.title} data-light className="yt-pain flex gap-4 rounded-2xl px-4 py-3">
+              <li key={pain.title} data-light className="yt-pain relative flex gap-4 overflow-hidden px-4 py-3">
                 <span
                   className="yt-pain-dot mt-2 h-2 w-2 shrink-0 rounded-full"
                   aria-hidden="true"
