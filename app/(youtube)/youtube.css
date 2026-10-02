@@ -83,8 +83,9 @@ html.lenis, html.lenis body { height: auto; }
   transition: opacity 0.6s ease 0.3s;
 }
 .yt-loader.is-done .yt-feed { opacity: 0; }
-.yt-feed-row { display: flex; gap: 18px; width: max-content; animation: yt-feed calc(44s + var(--row) * 9s) linear infinite; }
-.yt-feed-row:nth-child(2) { animation-direction: reverse; margin-left: -120px; }
+/* Each row starts off the left edge and slides by one full run (half its width), so both ends stay off screen at any width. */
+.yt-feed-row { display: flex; gap: 18px; width: max-content; margin-left: calc(-140px - var(--row) * 37px); animation: yt-feed calc(96s + var(--row) * 7s) linear infinite; }
+.yt-feed-row:nth-child(even) { animation-direction: reverse; }
 .yt-feed-card { width: 220px; aspect-ratio: 16 / 9; border-radius: 14px; flex: none; }
 
 /* The button: liquid surface slides sideways forever. */
