@@ -48,7 +48,7 @@ export function GlitchGhosts() {
       if (!ghost.visible) return;
       ghost.position.x = (i === 0 ? -1 : 1) * g.split;
       ghost.position.y = (i === 0 ? 1 : -1) * g.split * 0.25;
-      (ghost.material as MeshBasicMaterial).opacity = 0.32 * g.strength;
+      (ghost.material as MeshBasicMaterial).opacity = 0.22 * g.strength;
     });
   });
 
@@ -62,13 +62,13 @@ export function GlitchGhosts() {
 }
 
 const RINGS = [
-  { rx: 1.25, ry: 1.25, tiltX: 1.18, tiltZ: 0.32, speed: 0.55, color: "#6E8BFF" },
-  { rx: 1.45, ry: 1.45, tiltX: 1.3, tiltZ: -0.42, speed: -0.38, color: "#A78BFA" },
+  { rx: 1.25, ry: 1.25, tiltX: -1.18, tiltZ: 0.32, speed: 0.55, color: "#6E8BFF" },
+  { rx: 1.45, ry: 1.45, tiltX: -1.3, tiltZ: -0.42, speed: -0.38, color: "#A78BFA" },
 ];
 
 /**
  * Tools screen: two tilted orbits around the button, each with a light running along it, echoing the tool cards that circle the
- * button in the page. Fades in with the frame's `orbit`. Lives in the button's root group, so it does not tilt with the pointer.
+ * button in the page. Tilted back, so the lower half passes in front of the button and the upper half behind it (depth-tested). Fades in with the frame's `orbit`. Lives in the button's root group, so it does not tilt with the pointer.
  */
 export function OrbitRings() {
   const rings = useMemo(

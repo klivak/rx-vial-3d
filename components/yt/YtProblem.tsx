@@ -20,14 +20,14 @@ export function YtProblem() {
     >
       <div className="yt-container pointer-events-none! grid items-center md:grid-cols-2">
         <div className="hidden md:block" />
-        <div className="pointer-events-auto -mx-2 max-w-xl rounded-[2rem] bg-background/70 p-5 backdrop-blur-xl md:mx-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
+        <div className="pointer-events-auto -mx-2 max-w-2xl rounded-[2rem] bg-background/70 p-5 backdrop-blur-xl md:mx-0 md:bg-transparent md:p-0 md:backdrop-blur-none">
           <p data-reveal className="yt-eyebrow">
             {c.eyebrow}
           </p>
           <h2 className="mt-5 text-4xl font-semibold leading-[1.08] tracking-[-0.025em] sm:text-5xl">
             <SplitWords text={c.title} />
           </h2>
-          <p data-reveal className="mt-5 max-w-lg leading-relaxed text-muted">
+          <p data-reveal className="mt-5 max-w-xl leading-relaxed text-muted">
             {c.lead}
           </p>
 

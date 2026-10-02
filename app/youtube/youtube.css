@@ -31,9 +31,8 @@ html.lenis, html.lenis body { height: auto; }
 /* The red light behind the button. It travels with the button and dims as the channel "loses health"; soft, never neon. */
 .yt-glow {
   background:
-    radial-gradient(28vmax 22vmax at var(--yt-x) var(--yt-y), rgb(255 0 51 / calc(0.2 * var(--yt-glow) * (1 - min(var(--yt-tier, 0), 1)))), transparent 70%),
-    radial-gradient(30vmax 24vmax at var(--yt-x) var(--yt-y), rgb(255 196 92 / calc(0.16 * min(var(--yt-tier, 0), 1))), transparent 70%),
-    radial-gradient(40vmax 30vmax at var(--yt-x) var(--yt-y), rgb(124 58 237 / calc(0.08 + 0.06 * (1 - var(--yt-health)))), transparent 70%);
+    radial-gradient(28vmax 22vmax at var(--yt-x) var(--yt-y), rgb(var(--yt-glow-c, 255 0 51) / calc(0.2 * var(--yt-glow))), transparent 70%),
+    radial-gradient(40vmax 30vmax at var(--yt-x) var(--yt-y), rgb(124 58 237 / calc((0.08 + 0.06 * (1 - var(--yt-health))) * (1 - min(var(--yt-tier, 0), 1)))), transparent 70%);
 }
 
 /* No-WebGL poster and boot placeholder: the flat button where the 3D one will appear. */

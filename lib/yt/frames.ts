@@ -63,6 +63,12 @@ export const ytFrames: Record<"desktop" | "mobile", YtFrame[]> = {
   mobile: [mobile.hero, mobile.problem, mobile.scan, mobile.report, away, mobile.competitors, away, away, mobile.tools, mobile.milestones, mobile.cta, away],
 };
 
+/**
+ * How much scroll (in viewport heights) the move into a screen takes; the default is 0.7 (section top from the bottom of the
+ * viewport to 30% from the top). The final call to action turns the diamond back into red lacquer, so it gets more room.
+ */
+export const ytSpans: Partial<Record<number, number>> = { 10: 1.5 };
+
 /** In-section tracks by screen index: the scan refills the button, the milestones turn it silver, gold, then diamond. */
 export const ytTracks: Partial<Record<number, YtTrack>> = {
   2: { fill: 1, glow: 0.9 },

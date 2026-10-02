@@ -4,7 +4,7 @@ import { useThree } from "@react-three/fiber";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect } from "react";
-import { ytFrames, ytTracks, type YtFrame } from "@/lib/yt/frames";
+import { ytFrames, ytSpans, ytTracks, type YtFrame } from "@/lib/yt/frames";
 import { columnShare } from "@/lib/yt/layout";
 import { applyYtFrame, ytState } from "@/lib/yt/state";
 
@@ -29,6 +29,7 @@ function syncCss() {
   layer?.style.setProperty("--yt-glow", s.glow.toFixed(3));
   layer?.style.setProperty("--yt-health", s.fill.toFixed(3));
   layer?.style.setProperty("--yt-tier", s.tier.toFixed(3));
+  layer?.style.setProperty("--yt-glow-c", glowColor(s.tier));
   // Award row i lights up as the metal passes from tier i to i + 1.
   awards.forEach((el, i) => el.style.setProperty("--lit", Math.min(1, Math.max(0, s.tier - i)).toFixed(3)));
   subs ??= document.querySelector("[data-subs]");
@@ -36,6 +37,20 @@ function syncCss() {
     const text = Math.round(Math.pow(10, 4 + s.tier)).toLocaleString("en-US");
     if (text !== lastSubs) subs.textContent = lastSubs = text;
   }
+}
+
+/** Glow behind the button per finish (red, silver, gold, diamond), blended between neighbours. */
+const GLOWS = [
+  [255, 0, 51],
+  [190, 205, 230],
+  [255, 190, 80],
+  [140, 195, 255],
+];
+function glowColor(tier: number) {
+  const t = Math.min(3, Math.max(0, tier));
+  const i = Math.min(2, Math.floor(t));
+  const k = t - i;
+  return GLOWS[i].map((c, j) => Math.round(c + (GLOWS[i + 1][j] - c) * k)).join(" ");
 }
 
 /** Frame i with its in-section track applied: where the button is when the visitor leaves screen i. */
@@ -69,7 +84,7 @@ function buildScrub(list: YtFrame[], invalidate: () => void) {
     gsap.utils.toArray<HTMLElement>("[data-yt-frame]").forEach((section, i) => {
       if (!list[i]) return;
       const top = section.getBoundingClientRect().top + window.scrollY;
-      const arrive = at(top - vh * 0.3);
+      const arrive = at(top - vh + vh * (ytSpans[i] ?? 0.7));
       if (i > 0) {
         const start = at(top - vh);
         const span = Math.max(0.0005, arrive - start);
@@ -80,7 +95,7 @@ function buildScrub(list: YtFrame[], invalidate: () => void) {
         tl!.fromTo(
           ytState,
           { fill: fromFill, glow: fromGlow, tier: fromTier },
-          { fill, glow, tier, duration: span * 0.7, ease: "power1.inOut", immediateRender: false },
+          { fill, glow, tier, duration: span * 0.7, ease: "sine.inOut", immediateRender: false },
           start + span * 0.3,
         );
       }

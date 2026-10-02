@@ -155,7 +155,7 @@ export function PlayButton() {
 
     // Frame scale is a share of the screen height, capped by the column width so narrow laptops get a smaller button.
     const size = Math.min(s.scale * vp.height, buttonMaxHeight(screen.width) * (vp.height / screen.height));
-    // Glitch burst (fired as pains light up): stepped sideways jumps and a twist, scaled to the button.
+    // Glitch burst (fired as pains light up): a small decaying sway, scaled to the button.
     const glitch = glitchAt(performance.now());
     root.current.position.set(
       (s.x * vp.width * columnShare(screen.width)) / 2 + glitch.shiftX * size,
@@ -164,10 +164,12 @@ export function PlayButton() {
     );
     root.current.scale.setScalar(size * (1 + p.hover * 0.04 - p.press * 0.06));
 
+    // Award metals mirror the studio: a big tilt swings coloured reflections across them, so the pointer and sway calm down there.
+    const calm = 1 - Math.min(1, s.tier) * 0.75;
     tilt.current.rotation.set(
-      s.rotX + smooth.y * TILT_X + Math.sin(t * 0.7) * 0.035 * s.idle,
-      s.rotY + smooth.x * TILT_Y + Math.sin(t * 0.5) * 0.09 * s.idle,
-      s.rotZ + Math.sin(t * 0.43) * 0.02 * s.idle + glitch.twist,
+      s.rotX + smooth.y * TILT_X * calm + Math.sin(t * 0.7) * 0.035 * s.idle,
+      s.rotY + smooth.x * TILT_Y * calm + Math.sin(t * 0.5) * 0.09 * s.idle * calm,
+      s.rotZ + Math.sin(t * 0.43) * 0.02 * s.idle,
     );
     press.current.scale.z = 1 - p.hover * 0.12 - p.press * 0.3;
 
@@ -175,8 +177,8 @@ export function PlayButton() {
     const finish = applyFinish(button, s.tier);
     const triangleGlow = finish.triangleGlow;
     const fill = s.fill;
-    // In a glitch the old red flashes back for a slot or two: the channel trying to come alive.
-    button.fill.uFill.value = glitch.flash ? 1 : fill;
+    // In a glitch the red surges up and drains again: the channel trying to come alive.
+    button.fill.uFill.value = fill + (1 - fill) * glitch.surge * 0.55;
     button.fill.uTime.value = t;
     button.bodyMaterial.roughness += (1 - fill) * 0.3;
     triangleTint.copy(button.triangleMaterial.color);

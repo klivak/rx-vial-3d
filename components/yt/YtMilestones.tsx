@@ -32,7 +32,7 @@ export function YtMilestones() {
               </span>
               <span className="text-sm text-muted">{c.counter}</span>
             </p>
-            <ol className="mt-6 space-y-2">
+            <ol className="mt-6 max-w-md space-y-2">
               {c.awards.map((award, i) => (
                 <li
                   key={award.name}
