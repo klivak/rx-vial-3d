@@ -7,12 +7,19 @@ gsap.registerPlugin(ScrollTrigger);
 let lenis: Lenis | null = null;
 let locked = true;
 
+/** Keys and scrollbar drags bypass Lenis (and there is no Lenis with reduced motion): while locked, the page stays at the top. */
+function pin() {
+  if (locked && window.scrollY !== 0) window.scrollTo(0, 0);
+}
+
 /**
  * Inertial wheel scrolling driven by the GSAP ticker, so Lenis, ScrollTrigger and the 3D timeline all step on the same frame.
  * Touch keeps native scrolling (Lenis leaves swipes alone by default), and reduced motion gets plain scroll with no Lenis at all.
  */
 export function startSmoothScroll(): () => void {
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return () => {};
+  if (locked) window.addEventListener("scroll", pin, { passive: true });
+  const unpin = () => window.removeEventListener("scroll", pin);
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return unpin;
 
   lenis = new Lenis({ duration: 1.15, easing: (t) => 1 - Math.pow(1 - t, 4), anchors: { offset: 0 } });
   if (locked) lenis.stop();
@@ -22,6 +29,7 @@ export function startSmoothScroll(): () => void {
   gsap.ticker.lagSmoothing(0);
 
   return () => {
+    unpin();
     gsap.ticker.remove(tick);
     gsap.ticker.lagSmoothing(500, 33);
     lenis?.destroy();
@@ -32,6 +40,7 @@ export function startSmoothScroll(): () => void {
 /** Called once the loader lifts: until then the page must not move under it. */
 export function unlockScroll() {
   locked = false;
+  window.removeEventListener("scroll", pin);
   lenis?.start();
 }
 

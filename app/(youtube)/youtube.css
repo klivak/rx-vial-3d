@@ -16,10 +16,18 @@ html:has(.yt-page) {
 html:has(.yt-page) body { background: var(--background); color: var(--foreground); }
 .yt-page ::selection { background: rgb(46 89 231 / 0.45); }
 
-/* Lenis */
+/* Lenis. No `overflow: clip` while stopped: that hid the scrollbar under the loader (see below). */
 html.lenis, html.lenis body { height: auto; }
-.lenis:not(.lenis-autoToggle).lenis-stopped { overflow: clip; }
 .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+
+/* Desktop keeps its scrollbar through the loader. Hiding it (overflow: hidden) and showing it again as the hero opened narrowed the
+   page by the scrollbar's width: the 3D canvas reallocated (a 200 ms+ stall mid-entrance) and right-anchored items shifted. Scrolling
+   is still held: stopped Lenis swallows wheel input and lib/yt/smoothScroll pins the page to the top against keys and scrollbar drags.
+   (scrollbar-gutter: stable does not help: Chromium reserves no gutter on the root while it is overflow: hidden.) Phones keep the
+   plain lock; their scrollbars overlay the page and take no width. */
+@media (hover: hover) and (pointer: fine) {
+  html.is-loading:has(.yt-page) { overflow: visible; }
+}
 
 /* Backdrop: a cool AIR-blue sky from the top left, a violet haze from the bottom right, and a faint grid that fades at the edges. */
 .yt-backdrop {
@@ -289,9 +297,10 @@ html.lenis, html.lenis body { height: auto; }
 .yt-aurora::before, .yt-aurora::after { content: ""; position: absolute; border-radius: 9999px; will-change: transform; }
 .yt-aurora::before { left: -10vw; top: -15vh; width: 60vw; height: 60vh; background: radial-gradient(closest-side, rgb(46 89 231 / 0.16), transparent); animation: yt-drift-a 26s ease-in-out infinite; }
 .yt-aurora::after { right: -12vw; bottom: -20vh; width: 55vw; height: 65vh; background: radial-gradient(closest-side, rgb(124 58 237 / 0.13), transparent); animation: yt-drift-b 32s ease-in-out infinite; }
+/* Plain alpha, not mix-blend-mode: overlay. A full-screen blend over the 3D canvas made the GPU re-blend the whole screen on every
+   frame the button moved (idle frames up to 200 ms on a warm cache); 1.2 % plain noise keeps the texture at the same overall tone. */
 .yt-grain {
-  opacity: 0.05;
-  mix-blend-mode: overlay;
+  opacity: 0.012;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
