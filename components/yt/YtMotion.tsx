@@ -8,6 +8,10 @@ import { fireBeat } from "@/lib/yt/state";
 gsap.registerPlugin(ScrollTrigger);
 
 const q = <T extends Element = HTMLElement>(sel: string, root: ParentNode = document) => gsap.utils.toArray<T>(root.querySelectorAll(sel));
+/** Counters tween every frame, but the rounded text changes far less often: writing only on a change skips a relayout per frame. */
+const setText = (el: Element, text: string) => {
+  if (el.textContent !== text) el.textContent = text;
+};
 
 /**
  * Headings: words rise out of their line masks, then the section's `[data-reveal]` lines follow. The hero keeps its CSS intro.
@@ -94,7 +98,8 @@ function scan(desktop: boolean) {
       duration: tl.duration(),
       ease: "none",
       onUpdate: () => {
-        if (counter) counter.textContent = count.n >= total - 0.5 ? `${total}+` : String(Math.round(count.n));
+        const text = count.n >= total - 0.5 ? `${total}+` : String(Math.round(count.n));
+        if (counter && counter.textContent !== text) counter.textContent = text;
       },
     },
     0,
@@ -115,7 +120,7 @@ function report() {
   q("[data-count]", section).forEach((el) => {
     const value = Number(el.dataset.count);
     const n = { v: 0 };
-    tl.fromTo(n, { v: 0 }, { v: value, duration: 1.6, ease: "power3.out", onUpdate: () => (el.textContent = String(Math.round(n.v))) }, 0.2);
+    tl.fromTo(n, { v: 0 }, { v: value, duration: 1.6, ease: "power3.out", onUpdate: () => setText(el, String(Math.round(n.v))) }, 0.2);
   });
   tl.from(q("[data-bar]", section), { scaleX: 0, duration: 1.2, ease: "power3.out", stagger: 0.12 }, 0.35);
   tl.from(q("[data-row]", section), { opacity: 0, x: 18, duration: 0.7, ease: "power3.out", stagger: 0.07 }, 0.5);
@@ -147,7 +152,7 @@ function bench() {
       tl.fromTo(
         n,
         { v: 0 },
-        { v: value, duration: 0.9, ease: "power2.out", onUpdate: () => (el.textContent = n.v.toFixed(decimals) + suffix) },
+        { v: value, duration: 0.9, ease: "power2.out", onUpdate: () => setText(el, n.v.toFixed(decimals) + suffix) },
         at + 0.18 + i * 0.08,
       );
     });
