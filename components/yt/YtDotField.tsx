@@ -69,7 +69,7 @@ export function YtDotField() {
       const bx = w / 2 + ytState.x * (w / 2) * columnShare(w);
       const by = h / 2 - ytState.y * (h / 2);
       const br = Math.max(1, ytState.scale * h * 1.1);
-      const redness = ytState.fill * ytState.glow * (1 - Math.min(1, ytState.tier));
+      const redness = ytState.fill * ytState.glow * (1 - Math.min(1, ytState.tier) * (1 - ytState.lacquer));
       drawn.bx = bx;
       drawn.by = by;
       drawn.br = br;
@@ -120,7 +120,7 @@ export function YtDotField() {
 
     // Scrolling moves the button, so the red tint has to follow it; with no tint in view there is nothing to redraw.
     const scrolled = () => {
-      const redness = ytState.fill * ytState.glow * (1 - Math.min(1, ytState.tier));
+      const redness = ytState.fill * ytState.glow * (1 - Math.min(1, ytState.tier) * (1 - ytState.lacquer));
       if (redness === 0 && drawn.redness === 0) return;
       const bx = w / 2 + ytState.x * (w / 2) * columnShare(w);
       const by = h / 2 - ytState.y * (h / 2);

@@ -50,14 +50,18 @@ export type FinishResult = {
 /**
  * Blends between the finishes around `tier` (0..3) and writes them into the button's materials. Each finish rests for the first and
  * last fifth of its stretch; the change in between is eased, so it reads as one smooth plating rather than a muddy mix.
+ * `lacquer` then pulls the result straight back to red lacquer (the call to action), so the diamond never passes through gold and
+ * silver on its way back; the scroll already eases it, so it blends linearly with one light band of its own.
  * Iridescence and clearcoat never reach zero, so no blend ever forces a shader recompile.
  */
-export function applyFinish(button: PlayButton, tier: number): FinishResult {
+export function applyFinish(button: PlayButton, tier: number, lacquer = 0): FinishResult {
   const t = Math.min(3, Math.max(0, tier));
   const i = Math.min(2, Math.floor(t));
   const f = t >= 3 ? 1 : t - i;
   const e = Math.min(1, Math.max(0, (f - 0.2) / 0.6));
   const k = e * e * (3 - 2 * e);
+  const r = Math.min(1, Math.max(0, lacquer));
+  if (r > 0) return blendToLacquer(button, parsed[i], parsed[i + 1], k, r);
   const a = parsed[i];
   const b = parsed[i + 1];
   const body = button.bodyMaterial;
@@ -79,5 +83,34 @@ export function applyFinish(button: PlayButton, tier: number): FinishResult {
     triangleGlow: lerp(a.triangleGlow, b.triangleGlow, k),
     sweep: e > 0 && e < 1 ? e : -1,
     sweepColor: b.sweepColor,
+  };
+}
+
+type Parsed = (typeof parsed)[number];
+const mixColor = (out: Color, a: Color, b: Color, k: number, red: Color, r: number) => out.copy(a).lerp(b, k).lerp(red, r);
+const mix = (a: number, b: number, k: number, red: number, r: number) => lerp(lerp(a, b, k), red, r);
+
+/** The metal blend of `a` → `b` at `k`, pulled towards red lacquer by `r` (0..1). */
+function blendToLacquer(button: PlayButton, a: Parsed, b: Parsed, k: number, r: number): FinishResult {
+  const red = parsed[0];
+  const body = button.bodyMaterial;
+  mixColor(body.color, a.bodyColor, b.bodyColor, k, red.bodyColor, r);
+  body.metalness = mix(a.metalness, b.metalness, k, red.metalness, r);
+  body.roughness = mix(a.roughness, b.roughness, k, red.roughness, r);
+  body.clearcoat = Math.max(0.05, mix(a.clearcoat, b.clearcoat, k, red.clearcoat, r));
+  body.clearcoatRoughness = mix(a.clearcoatRoughness, b.clearcoatRoughness, k, red.clearcoatRoughness, r);
+  body.iridescence = Math.max(0.001, mix(a.iridescence, b.iridescence, k, red.iridescence, r));
+  body.envMapIntensity = mix(a.env, b.env, k, red.env, r);
+  mixColor(body.emissive, a.emissiveColor, b.emissiveColor, k, red.emissiveColor, r);
+  body.emissiveIntensity = mix(a.emissiveIntensity, b.emissiveIntensity, k, red.emissiveIntensity, r);
+  const tri = button.triangleMaterial;
+  mixColor(tri.color, a.triangleColor, b.triangleColor, k, red.triangleColor, r);
+  tri.metalness = mix(a.triangleMetalness, b.triangleMetalness, k, red.triangleMetalness, r);
+  tri.roughness = mix(a.triangleRoughness, b.triangleRoughness, k, red.triangleRoughness, r);
+  tri.envMapIntensity = mix(a.env, b.env, k, red.env, r) * 0.9;
+  return {
+    triangleGlow: mix(a.triangleGlow, b.triangleGlow, k, red.triangleGlow, r),
+    sweep: r < 1 ? r : -1,
+    sweepColor: red.sweepColor,
   };
 }

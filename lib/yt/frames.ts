@@ -13,6 +13,8 @@ export type YtFrame = {
   fill: number;
   /** Finish: 0 red lacquer, 1 silver, 2 gold, 3 diamond (YouTube's 100K / 1M / 10M creator awards). Fractions blend. */
   tier: number;
+  /** How far the finish is pulled back from the award metal to red lacquer, 0..1. The call to action turns the diamond straight back to red, without passing through gold and silver again (and the award rows stay lit). */
+  lacquer: number;
   /** Strength of the red glow behind the button (CSS). */
   glow: number;
   /** How much the idle float and sway apply. 0 also lets the canvas rest when the button is off screen. */
@@ -37,7 +39,7 @@ export type YtFrame = {
  */
 export type YtTrack = Partial<YtFrame>;
 
-const base = { fill: 1, tier: 0, glow: 1, idle: 1, scan: 0, link: 0, orbit: 0, score: 0, scoreDraw: 0, radar: 0 };
+const base = { fill: 1, tier: 0, lacquer: 0, glow: 1, idle: 1, scan: 0, link: 0, orbit: 0, score: 0, scoreDraw: 0, radar: 0 };
 
 const hero: YtFrame = { ...base, x: 0.5, y: -0.02, scale: 0.36, rotX: 0.1, rotY: -0.42, rotZ: 0.04 };
 const problem: YtFrame = { ...base, x: -0.5, y: 0.02, scale: 0.36, rotX: 0.22, rotY: 0.62, rotZ: -0.16, fill: 0, glow: 0.15, idle: 0.6 };
@@ -50,7 +52,9 @@ const competitors: YtFrame = { ...base, x: -0.6, y: -0.02, scale: 0.24, rotX: 0.
 const tools: YtFrame = { ...base, x: 0, y: -0.24, scale: 0.22, rotX: 0.08, rotY: 0, rotZ: 0, orbit: 1 };
 /** Faces the viewer like a plaque on a shelf; the metal changes while the section scrolls (see tracks). */
 const milestones: YtFrame = { ...base, x: 0.42, y: -0.04, scale: 0.36, rotX: 0.04, rotY: -0.22, rotZ: 0, glow: 0.5 };
-const cta: YtFrame = { ...base, x: 0, y: 0.42, scale: 0.25, rotX: 0.14, rotY: 0, rotZ: 0, glow: 1.25, link: 1 };
+const cta: YtFrame = { ...base, x: 0, y: 0.42, scale: 0.25, rotX: 0.14, rotY: 0, rotZ: 0, glow: 1.25, link: 1, tier: 3, lacquer: 1 };
+/** Off screen after the call to action, still red: changing the finish while it flies away would only flicker. */
+const gone: YtFrame = { ...away, tier: 3, lacquer: 1 };
 
 const mobile = {
   hero: { ...hero, x: 0.1, y: -0.74, scale: 0.15, rotY: -0.3 },
@@ -66,8 +70,8 @@ const mobile = {
 
 /** One pose per `[data-yt-frame]` section, in page order: hero, problem, scan, report, thumbs, competitors, plans, how, tools, milestones, cta, faq. */
 export const ytFrames: Record<"desktop" | "mobile", YtFrame[]> = {
-  desktop: [hero, problem, scan, report, away, competitors, away, away, tools, milestones, cta, away],
-  mobile: [mobile.hero, mobile.problem, mobile.scan, mobile.report, away, mobile.competitors, away, away, mobile.tools, mobile.milestones, mobile.cta, away],
+  desktop: [hero, problem, scan, report, away, competitors, away, away, tools, milestones, cta, gone],
+  mobile: [mobile.hero, mobile.problem, mobile.scan, mobile.report, away, mobile.competitors, away, away, mobile.tools, mobile.milestones, mobile.cta, gone],
 };
 
 /**

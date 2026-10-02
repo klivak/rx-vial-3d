@@ -83,7 +83,7 @@ export function Sparkles() {
   useFrame(({ clock, size, viewport }) => {
     const u = (points.material as ShaderMaterial).uniforms;
     const t = ytState.tier;
-    const amount = Math.min(1, Math.max(0, t - 0.4));
+    const amount = Math.min(1, Math.max(0, t - 0.4)) * (1 - ytState.lacquer);
     points.visible = amount > 0.01;
     if (!points.visible) return;
     u.uTime.value = clock.elapsedTime;

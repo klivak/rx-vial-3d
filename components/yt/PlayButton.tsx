@@ -205,7 +205,7 @@ export function PlayButton() {
     root.current.scale.setScalar(size * (1 + p.hover * 0.04 - p.press * 0.06 + pop) *(0.4 + 0.6 * easeOutBack(clamp01(intro / 0.75))));
 
     // Award metals mirror the studio: a big tilt swings coloured reflections across them, so the pointer and sway calm down there.
-    const calm = 1 - Math.min(1, s.tier) * 0.75;
+    const calm = 1 - Math.min(1, s.tier) * (1 - s.lacquer) * 0.75;
     tilt.current.rotation.set(
       s.rotX + smooth.y * TILT_X * calm + Math.sin(t * 0.7) * 0.035 * s.idle + (1 - arrive) * 0.35 - Math.cos(arc * Math.PI * 2) * lean,
       // The entrance swings in from the other side rather than spinning: the face stays towards the camera from the first frame.
@@ -215,7 +215,7 @@ export function PlayButton() {
     press.current.scale.z = 1 - p.hover * 0.12 - p.press * 0.3;
 
     // Finish (red lacquer or an award metal), then the liquid fill on top: the empty part is grey, the level glows.
-    const finish = applyFinish(button, s.tier);
+    const finish = applyFinish(button, s.tier, s.lacquer);
     const triangleGlow = finish.triangleGlow;
     const fill = s.fill * pour * pour * (3 - 2 * pour);
     button.fill.uFill.value = fill;

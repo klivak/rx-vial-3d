@@ -48,8 +48,8 @@ function syncCss() {
     put(layer, "gy", "--yt-gy", `${((0.5 - s.y * 0.5) * layerH).toFixed(1)}px`);
     put(layer, "glow", "--yt-glow", s.glow.toFixed(3));
     put(layer, "health", "--yt-health", s.fill.toFixed(3));
-    put(layer, "tier", "--yt-tier", s.tier.toFixed(3));
-    if (s.tier !== lastTier) put(layer, "glowc", "--yt-glow-c", glowColor(s.tier));
+    put(layer, "tier", "--yt-tier", (Math.min(1, s.tier) * (1 - s.lacquer)).toFixed(3));
+    put(layer, "glowc", "--yt-glow-c", glowColor(s.tier, s.lacquer));
   }
   // Award row i lights up as the metal passes from tier i to i + 1.
   if (s.tier !== lastTier) {
@@ -70,11 +70,14 @@ const GLOWS = [
   [255, 172, 20],
   [100, 170, 255],
 ];
-function glowColor(tier: number) {
+function glowColor(tier: number, lacquer: number) {
   const t = Math.min(3, Math.max(0, tier));
   const i = Math.min(2, Math.floor(t));
   const k = t - i;
-  return GLOWS[i].map((c, j) => Math.round(c + (GLOWS[i + 1][j] - c) * k)).join(" ");
+  return GLOWS[i].map((c, j) => {
+    const metal = c + (GLOWS[i + 1][j] - c) * k;
+    return Math.round(metal + (GLOWS[0][j] - metal) * lacquer);
+  }).join(" ");
 }
 
 /** Frame i with its in-section track applied: where the button is when the visitor leaves screen i. */
@@ -112,14 +115,14 @@ function buildScrub(list: YtFrame[], invalidate: () => void) {
       if (i > 0) {
         const start = at(top - vh);
         const span = Math.max(0.0005, arrive - start);
-        const { fill: fromFill, glow: fromGlow, tier: fromTier, ...fromMove } = settled(list, i - 1);
-        const { fill, glow, tier, ...move } = list[i];
+        const { fill: fromFill, glow: fromGlow, tier: fromTier, lacquer: fromLacquer, ...fromMove } = settled(list, i - 1);
+        const { fill, glow, tier, lacquer, ...move } = list[i];
         tl!.fromTo(ytState, fromMove, { ...move, duration: span, ease: "power2.inOut", immediateRender: false }, start);
         // Colour and finish follow a little behind the motion: the button turns first, then drains, fills or changes metal.
         tl!.fromTo(
           ytState,
-          { fill: fromFill, glow: fromGlow, tier: fromTier },
-          { fill, glow, tier, duration: span * 0.7, ease: "sine.inOut", immediateRender: false },
+          { fill: fromFill, glow: fromGlow, tier: fromTier, lacquer: fromLacquer },
+          { fill, glow, tier, lacquer, duration: span * 0.7, ease: "sine.inOut", immediateRender: false },
           start + span * 0.3,
         );
       }
