@@ -25,7 +25,9 @@ const smooth = { x: 0, y: 0 };
 /** Seconds between the rings the button sends out on its own while the tools orbit it. */
 const ORBIT_PULSE = 2.4;
 let lastPulse = -Infinity;
-/** Entrance after the loader: the button rises and spins in grey, the red pours in, and it lands with a ring. */
+/** Spread and brightness of the next ring: full for a click or an orbit pulse, softer for the landing after the loader. */
+let rippleGain = 1;
+/** Entrance after the loader: the button rises and swings in grey, the red pours in, and it lands with a ring. */
 const INTRO_MS = 1800;
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -124,6 +126,12 @@ export function PlayButton() {
   // Mouse only: phone gyroscope noise made the button shiver.
   useEffect(() => startParallax({ tilt: false }), []);
   useEffect(() => () => button.dispose(), [button]);
+  useEffect(() => {
+    ytIntro.wake = invalidate;
+    return () => {
+      ytIntro.wake = () => {};
+    };
+  }, [invalidate]);
   useEffect(
     () => () => {
       rippleGeometry.dispose();
@@ -169,6 +177,7 @@ export function PlayButton() {
     if (!ytIntro.rang && intro >= 0.55) {
       ytIntro.rang = true;
       p.rippleAt = t;
+      rippleGain = 0.5;
     }
     root.current.position.set(
       (s.x * vp.width * columnShare(screen.width)) / 2,
@@ -180,8 +189,9 @@ export function PlayButton() {
     // Award metals mirror the studio: a big tilt swings coloured reflections across them, so the pointer and sway calm down there.
     const calm = 1 - Math.min(1, s.tier) * 0.75;
     tilt.current.rotation.set(
-      s.rotX + smooth.y * TILT_X * calm + Math.sin(t * 0.7) * 0.035 * s.idle,
-      s.rotY + smooth.x * TILT_Y * calm + Math.sin(t * 0.5) * 0.09 * s.idle * calm - (1 - arrive) * Math.PI * 1.2,
+      s.rotX + smooth.y * TILT_X * calm + Math.sin(t * 0.7) * 0.035 * s.idle + (1 - arrive) * 0.35,
+      // The entrance swings in from the other side rather than spinning: the face stays towards the camera from the first frame.
+      s.rotY + smooth.x * TILT_Y * calm + Math.sin(t * 0.5) * 0.09 * s.idle * calm + (1 - arrive) * 0.95,
       s.rotZ + Math.sin(t * 0.43) * 0.02 * s.idle,
     );
     press.current.scale.z = 1 - p.hover * 0.12 - p.press * 0.3;
@@ -202,6 +212,7 @@ export function PlayButton() {
     if (s.orbit > 0.5 && t - lastPulse > ORBIT_PULSE) {
       lastPulse = t;
       p.rippleAt = t;
+      rippleGain = 1;
     }
 
     // Rings run outwards from the silhouette after a click, the second one a beat behind the first.
@@ -213,8 +224,8 @@ export function PlayButton() {
       if (!live) return;
       ringsLive = true;
       const e = 1 - Math.pow(1 - age, 3);
-      ring.scale.setScalar(1 + e * (0.9 + i * 0.35));
-      (ring.material as MeshBasicMaterial).opacity = (1 - age) * (1 - age) * (0.85 - i * 0.3);
+      ring.scale.setScalar(1 + e * (0.9 + i * 0.35) * (0.4 + 0.6 * rippleGain));
+      (ring.material as MeshBasicMaterial).opacity = (1 - age) * (1 - age) * (0.85 - i * 0.3) * rippleGain;
     });
 
     // The sweep eases across the face and fades at both edges, about once every 1.8 s.
@@ -238,6 +249,8 @@ export function PlayButton() {
     // Demand frameloop: keep drawing while anything is alive; otherwise the GPU rests until the next scroll update.
     const settling = Math.abs(parallax.x - smooth.x) + Math.abs(parallax.y - smooth.y) > 1e-3 || Math.abs(p.hoverTarget - p.hover) > 1e-3;
     const filling = fill > 0.001 && fill < 0.999;
+    // Under the loader nothing is seen: after the warm-up frame the canvas sleeps until startYtIntro wakes it.
+    if (ytIntro.at < 0) return;
     if (intro < 1 || s.idle > 0 || s.scan > 0.01 || filling || p.press > 0 || ringsLive || settling) invalidate();
   });
 
@@ -256,6 +269,7 @@ export function PlayButton() {
     e.stopPropagation();
     ytPointer.press = 1;
     ytPointer.rippleAt = clock.elapsedTime;
+    rippleGain = 1;
     invalidate();
     // On the final screen the button is the call to action: let the press and the first ring play, then go.
     if (ytState.link > 0.5) setTimeout(() => window.location.assign(AUDIT_URL), 420);

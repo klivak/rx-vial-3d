@@ -17,12 +17,14 @@ export function fireBeat() {
   ytFx.beatAt = performance.now();
 }
 
-/** Hero entrance once the loader lifts: the button spins in, fills with red and sends out a ring (performance.now() ms; -1 until then). */
-export const ytIntro = { at: -1, rang: false };
+/** Hero entrance once the loader lifts: the button swings in, fills with red and sends out a ring (performance.now() ms; -1 until then). */
+export const ytIntro = { at: -1, rang: false, wake: () => {} };
 
 /** Reduced motion skips the entrance: the button is simply there. */
 export function startYtIntro(delayMs: number) {
   const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   ytIntro.at = still ? 0 : performance.now() + delayMs;
   ytIntro.rang = still;
+  // The canvas sleeps under the loader (PlayButton); this draws the first frame of the entrance.
+  ytIntro.wake();
 }

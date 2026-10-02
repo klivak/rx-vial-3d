@@ -3,6 +3,7 @@
 import { useEffect, useRef, type CSSProperties } from "react";
 import { asset } from "@/lib/asset";
 import { ytCopy } from "@/lib/yt/copy";
+import { LOADER_HIDDEN_AT, LOADER_OPEN_DELAY, LOADER_OPEN_MS } from "@/lib/yt/introTiming";
 
 const BODY =
   "M27.97 3.12C27.64 1.89 26.68.93 25.45.6 23.22 0 14.27 0 14.27 0S5.32 0 3.09.6C1.86.93.9 1.89.57 3.12 0 5.35 0 10 0 10s0 4.65.57 6.88c.33 1.23 1.29 2.19 2.52 2.52C5.32 20 14.27 20 14.27 20s8.95 0 11.18-.6c1.23-.33 2.19-1.29 2.52-2.52.6-2.23.6-6.88.6-6.88s0-4.65-.6-6.88z";
@@ -105,6 +106,7 @@ export function YtLoader({ target, done }: { target: number; done: boolean }) {
       aria-label="Loading"
       aria-valuemin={0}
       aria-valuemax={100}
+      style={{ "--l-open-delay": `${LOADER_OPEN_DELAY}ms`, "--l-open-ms": `${LOADER_OPEN_MS}ms`, "--l-hidden-at": `${LOADER_HIDDEN_AT}ms` } as CSSProperties}
       className={`yt-loader loader fixed inset-0 z-50 flex flex-col items-center justify-center overflow-hidden bg-background ${done ? "is-done" : ""}`}
     >
       <div className="yt-backdrop absolute inset-0" aria-hidden="true" />
