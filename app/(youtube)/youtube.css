@@ -148,7 +148,6 @@ html.lenis, html.lenis body { height: auto; }
   color: transparent;
 }
 .yt-loader-pct > span:last-child { -webkit-text-fill-color: var(--color-muted, rgb(255 255 255 / 0.5)); }
-}
 .yt-loader-track { border-radius: 999px; background: rgb(255 255 255 / 0.1); }
 .yt-loader-bar {
   border-radius: inherit;
