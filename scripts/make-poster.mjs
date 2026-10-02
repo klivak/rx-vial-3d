@@ -3,7 +3,7 @@
 import { chromium, devices } from "@playwright/test";
 import { execFileSync } from "node:child_process";
 
-const url = process.argv[2] ?? "http://localhost:3210/?quality=high";
+const url = process.argv[2] ?? "http://localhost:3210/vial/?quality=high";
 const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 
 for (const [name, opts] of [

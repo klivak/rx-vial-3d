@@ -19,7 +19,7 @@ page.on("response", (r) => {
   if (pathname.endsWith(".js")) scripts.add(pathname.replace(/^\/rx-vial-3d\//, ""));
 });
 
-await page.goto("http://localhost:4174/rx-vial-3d/", { waitUntil: "networkidle" });
+await page.goto("http://localhost:4174/rx-vial-3d/vial/", { waitUntil: "networkidle" });
 await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
 await page.waitForTimeout(2000);
 await browser.close();

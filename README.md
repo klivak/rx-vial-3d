@@ -2,7 +2,12 @@
 
 Scroll-driven 3D product page for **Aurel**, a fictional telehealth brand: an amber Rx vial, a five-frame camera story, an unboxing, a cap colour configurator and "View in AR" that puts the vial on your table at real size.
 
-**Live demo:** [klivak.github.io/rx-vial-3d](https://klivak.github.io/rx-vial-3d/) (open it on a phone)
+Two pages live in this repo:
+
+- `/` — **YouTube Channel Audit by AIR**: a 3D YouTube play button story for creators (plan: [`docs/YOUTUBE_PLAN.md`](docs/YOUTUBE_PLAN.md)). Also served at `/youtube/`.
+- `/vial/` — the **Aurel** vial page described below.
+
+**Live demo:** [klivak.github.io/rx-vial-3d/vial/](https://klivak.github.io/rx-vial-3d/vial/) (open it on a phone)
 
 Stack: Next.js 15 (static export) · React Three Fiber · Three.js · GSAP ScrollTrigger · Tailwind CSS · Playwright · GitHub Pages.
 
@@ -58,7 +63,7 @@ Stack: Next.js 15 (static export) · React Three Fiber · Three.js · GSAP Scrol
 
 ```bash
 pnpm install
-pnpm dev                       # http://localhost:3210
+pnpm dev                       # http://localhost:3210 (YouTube audit), http://localhost:3210/vial/ (Aurel)
 pnpm dev --hostname 0.0.0.0    # open from a phone on the same network
 pnpm build                     # static export to out/
 pnpm test                      # Playwright smoke tests against out/ (Android, iPhone, reduced motion, desktop)
@@ -72,7 +77,7 @@ Debug helpers: `?debug` shows an FPS panel, and `?quality=low|high` forces a qua
 ## Project map
 
 ```
-app/                 layout, page, dev-only AR export route (page.dev.tsx)
+app/                 root layout; (youtube)/ the home page and /youtube/; (aurel)/vial/ the vial page; dev-only AR export route (page.dev.tsx)
 components/          Experience (canvas), Vial, Box, CameraRig, Turntable, ScrollTimeline, SceneLayer, Sections, CtaActions, ArButton
 lib/frames.ts        the five frame states (desktop and mobile), as data
 lib/sceneState.ts    mutable state GSAP writes and useFrame reads

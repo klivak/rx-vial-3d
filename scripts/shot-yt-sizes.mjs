@@ -2,7 +2,7 @@
 // Usage: node scripts/shot-yt-sizes.mjs [baseUrl] [stop,stop,...]   (a stop is "id:viewportHeights" or a number of viewport heights)
 import { chromium } from "@playwright/test";
 
-const url = process.argv[2] ?? "http://localhost:3210/youtube/";
+const url = process.argv[2] ?? "http://localhost:3210/";
 const stops = (process.argv[3] ?? "0").split(",");
 const sizes = [
   [1920, 1080],

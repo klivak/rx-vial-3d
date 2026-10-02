@@ -11,7 +11,7 @@ function collectErrors(page: Page) {
 
 test("page boots: text first, then the 3D scene, without errors", async ({ page }, testInfo) => {
   const errors = collectErrors(page);
-  await page.goto("./");
+  await page.goto("vial/");
 
   await expect(page.getByRole("heading", { level: 1, name: "Care that comes to you." })).toBeVisible();
   await expect(page.locator("#scene-layer canvas")).toBeAttached({ timeout: 20_000 });
@@ -25,7 +25,7 @@ test("page boots: text first, then the 3D scene, without errors", async ({ page 
 });
 
 test("every frame has a real heading for screen readers", async ({ page }) => {
-  await page.goto("./");
+  await page.goto("vial/");
   await expect(page.getByRole("heading", { level: 2 })).toHaveText([
     "Clinically backed formula",
     "How it works",
@@ -36,7 +36,7 @@ test("every frame has a real heading for screen readers", async ({ page }) => {
 });
 
 test("cap colour picker works from the keyboard and lands in the URL", async ({ page }) => {
-  await page.goto("./");
+  await page.goto("vial/");
   const group = page.getByRole("radiogroup", { name: "Cap colour" });
   await group.getByRole("radio", { name: "Sage" }).focus();
   await page.keyboard.press("ArrowRight");

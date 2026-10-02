@@ -8,18 +8,12 @@ const inter = Inter({
   display: "swap",
 });
 
+// Shared shell only: each page group sets its own title, description and theme colour.
 export const metadata: Metadata = {
-  title: "Aurel Daily - Care that comes to you",
-  description: "A scroll-driven 3D product page for a fictional telehealth brand, built with React Three Fiber and Next.js.",
-  openGraph: {
-    title: "Aurel Daily - Care that comes to you",
-    description: "Scroll-driven 3D product page with AR, built with React Three Fiber.",
-    type: "website",
-  },
+  title: "rx-vial-3d",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F4F1EC",
   width: "device-width",
   initialScale: 1,
 };
