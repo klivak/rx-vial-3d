@@ -18,16 +18,6 @@ let subs: HTMLElement | null = null;
 /** Last value written per property, so a scroll frame that changes nothing writes nothing (each write restyles the element). */
 const written = new Map<string, string>();
 let lastTier = NaN;
-/** Button state at the last 3D redraw, so a scroll frame that leaves the scene unchanged (or invisible) does not re-render it. */
-let lastPose = "";
-
-function poseChanged() {
-  const s = ytState;
-  const pose = s.show < 0.001 ? "hidden" : Object.values(s).map((v) => (v as number).toFixed(4)).join();
-  if (pose === lastPose) return false;
-  lastPose = pose;
-  return true;
-}
 
 function put(el: HTMLElement, key: string, name: string, value: string) {
   if (written.get(key) === value) return;
@@ -131,7 +121,7 @@ function buildScrub(list: YtFrame[], invalidate: () => void) {
       scrollTrigger: { start: 0, end: () => ScrollTrigger.maxScroll(window), scrub: 0.6 },
       onUpdate: () => {
         syncCss();
-        if (poseChanged()) invalidate();
+        invalidate();
       },
     });
     // The timeline spans exactly 0..1 of the scroll range.
