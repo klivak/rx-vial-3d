@@ -22,14 +22,13 @@ type Finish = {
 };
 
 /**
- * Red lacquer, then the creator awards as they look in hand: Silver is steel-toned satin chrome with a satin triangle, Gold is
- * satin-polished yellow gold, Diamond is an icy crystal with a thin-film rainbow and a faint inner glow (the sparkles do the rest).
+ * Red lacquer, then the creator awards as they look in hand: Silver is bright mirror chrome, Gold is rich polished yellow gold with a warm inner glow, Diamond is an icy crystal with a strong thin-film rainbow and a blue inner glow (the sparkles do the rest).
  */
 const finishes: Finish[] = [
   { body: "#FF0033", metalness: 0, roughness: 0.32, clearcoat: 1, clearcoatRoughness: 0.08, iridescence: 0.001, env: 1.1, triangle: "#FFFFFF", triangleMetalness: 0, triangleRoughness: 0.38, triangleGlow: 0.22, sweep: "#FFFFFF", emissive: "#000000", emissiveIntensity: 0 },
-  { body: "#B3BAC5", metalness: 1, roughness: 0.26, clearcoat: 0.5, clearcoatRoughness: 0.12, iridescence: 0.001, env: 1.1, triangle: "#C3C9D2", triangleMetalness: 1, triangleRoughness: 0.32, triangleGlow: 0, sweep: "#F4F7FF", emissive: "#000000", emissiveIntensity: 0 },
-  { body: "#F7BE52", metalness: 1, roughness: 0.22, clearcoat: 0.4, clearcoatRoughness: 0.12, iridescence: 0.001, env: 1.5, triangle: "#E4AE45", triangleMetalness: 1, triangleRoughness: 0.34, triangleGlow: 0, sweep: "#FFE3A3", emissive: "#000000", emissiveIntensity: 0 },
-  { body: "#D6E8FF", metalness: 0.7, roughness: 0.1, clearcoat: 1, clearcoatRoughness: 0.03, iridescence: 0.55, env: 1.6, triangle: "#F4FAFF", triangleMetalness: 0.4, triangleRoughness: 0.05, triangleGlow: 0.18, sweep: "#CFE6FF", emissive: "#7FB2FF", emissiveIntensity: 0.12 },
+  { body: "#E6EBF2", metalness: 1, roughness: 0.13, clearcoat: 1, clearcoatRoughness: 0.04, iridescence: 0.001, env: 1.05, triangle: "#F4F7FB", triangleMetalness: 1, triangleRoughness: 0.18, triangleGlow: 0.06, sweep: "#FFFFFF", emissive: "#9FB4D6", emissiveIntensity: 0.05 },
+  { body: "#FFA60F", metalness: 1, roughness: 0.16, clearcoat: 0.2, clearcoatRoughness: 0.06, iridescence: 0.001, env: 1.1, triangle: "#FFC02E", triangleMetalness: 1, triangleRoughness: 0.2, triangleGlow: 0.06, sweep: "#FFE08A", emissive: "#FF9400", emissiveIntensity: 0.07 },
+  { body: "#C4E0FF", metalness: 0.75, roughness: 0.06, clearcoat: 1, clearcoatRoughness: 0.02, iridescence: 0.95, env: 1.3, triangle: "#FFFFFF", triangleMetalness: 0.4, triangleRoughness: 0.04, triangleGlow: 0.28, sweep: "#BFE0FF", emissive: "#4F8DFF", emissiveIntensity: 0.32 },
 ];
 
 const parsed = finishes.map((f) => ({

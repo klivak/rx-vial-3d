@@ -37,8 +37,8 @@ const FRAGMENT = /* glsl */ `
 `;
 
 const silver = new Color(0.92, 0.95, 1);
-const gold = new Color(1, 0.86, 0.55);
-const diamond = new Color(0.78, 0.9, 1);
+const gold = new Color(1, 0.78, 0.3);
+const diamond = new Color(0.62, 0.84, 1);
 
 /** Star glints around the button once it turns into an award: one draw call, the twinkle runs on the GPU. */
 export function Sparkles() {

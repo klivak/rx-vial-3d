@@ -345,19 +345,41 @@ html:not(.is-loading) .yt-chip[data-intro] { animation-name: yt-chip-in; animati
 .yt-bench-you { background: linear-gradient(90deg, #ff0033, #ff5c7a); box-shadow: 0 0 14px rgb(255 0 51 / 0.45); }
 .yt-bench-them { background: #6e8bff; opacity: calc(0.35 + 0.45 * var(--o, 1)); }
 
-/* Screen 10: award rows light up as the button's metal reaches them (--lit is written by the scroll timeline). Dimming sits on the
-   row's children: the row itself carries the reveal tween's inline opacity. */
+/* Screen 10: award rows light up as the button's metal reaches them (--lit is written by the scroll timeline). Dimming sits on the row's children: the row itself carries the reveal tween's inline opacity. Each row has a small play-button badge in its award metal (--m1 highlight, --m2 body, --m3 shadow) and, once lit, a halo, frame and check in that metal's glow colour. */
 .yt-award {
   --lit: 0;
-  background: rgb(255 255 255 / calc(0.02 + 0.05 * var(--lit)));
-  box-shadow: inset 0 0 0 1px rgb(255 255 255 / calc(0.05 + 0.12 * var(--lit)));
+  background:
+    radial-gradient(120% 140% at 0% 50%, rgb(var(--glow) / calc(0.16 * var(--lit))), transparent 60%),
+    rgb(255 255 255 / calc(0.02 + 0.03 * var(--lit)));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, rgb(var(--glow)) calc(var(--lit) * 45%), rgb(255 255 255 / 0.06));
 }
+.yt-award.is-silver { --m1: #ffffff; --m2: #d3d9e2; --m3: #7c8796; --glow: 205 220 250; }
+.yt-award.is-gold { --m1: #fff4b8; --m2: #ffc12b; --m3: #b06d00; --glow: 255 176 24; }
+.yt-award.is-diamond { --m1: #ffffff; --m2: #a6dcff; --m3: #6f7bff; --glow: 110 180 255; }
 .yt-award > * { opacity: calc(0.4 + 0.6 * var(--lit)); }
-.yt-award-chip { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5); }
-.yt-award.is-silver .yt-award-chip { background: linear-gradient(135deg, #f4f6f9, #9aa3ae); }
-.yt-award.is-gold .yt-award-chip { background: linear-gradient(135deg, #ffe08a, #c58a1c); }
-.yt-award.is-diamond .yt-award-chip { background: linear-gradient(135deg, #ffffff, #a8d2ff 50%, #e1c8ff); }
-.yt-award > .yt-award-check { color: #4ade80; opacity: var(--lit); transform: scale(calc(0.6 + 0.4 * var(--lit))); }
+.yt-award-chip {
+  background: linear-gradient(135deg, var(--m1) 0%, var(--m2) 38%, var(--m3) 72%, var(--m2) 100%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.85), inset 0 -2px 3px rgb(0 0 0 / 0.25),
+    0 0 calc(var(--lit) * 18px) rgb(var(--glow) / calc(var(--lit) * 0.75));
+}
+.yt-award.is-diamond .yt-award-chip {
+  background: linear-gradient(135deg, #ffffff 0%, #b8f0ff 25%, #9fb8ff 50%, #f0c8ff 72%, #c8f6ff 100%);
+}
+/* The play triangle, cut in the same metal but lit from the other side so it reads as raised. */
+.yt-award-chip::after {
+  content: "";
+  position: absolute;
+  inset: 26% 33% 26% 38%;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  background: linear-gradient(315deg, var(--m1), var(--m2) 45%, var(--m3));
+}
+.yt-award-name { background: linear-gradient(100deg, var(--m1), var(--m2) 60%, var(--m1)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.yt-award > .yt-award-check {
+  color: rgb(var(--glow));
+  filter: drop-shadow(0 0 4px rgb(var(--glow) / 0.8));
+  opacity: var(--lit);
+  transform: scale(calc(0.6 + 0.4 * var(--lit)));
+}
 .yt-subs { background: linear-gradient(100deg, #f6f7fb, #c9d1e6); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 @media (prefers-reduced-motion: reduce) {

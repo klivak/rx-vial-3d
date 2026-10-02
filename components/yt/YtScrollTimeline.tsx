@@ -66,9 +66,9 @@ function syncCss() {
 /** Glow behind the button per finish (red, silver, gold, diamond), blended between neighbours. */
 const GLOWS = [
   [255, 0, 51],
-  [190, 205, 230],
-  [255, 190, 80],
-  [140, 195, 255],
+  [215, 228, 255],
+  [255, 172, 20],
+  [100, 170, 255],
 ];
 function glowColor(tier: number) {
   const t = Math.min(3, Math.max(0, tier));

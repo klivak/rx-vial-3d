@@ -40,9 +40,9 @@ export function YtMilestones() {
                   data-award
                   className={`yt-award is-${["silver", "gold", "diamond"][i]} flex items-center gap-4 rounded-2xl px-4 py-3`}
                 >
-                  <span className="yt-award-chip h-6 w-8 shrink-0 rounded-md" aria-hidden="true" />
+                  <span className="yt-award-chip relative h-7 w-10 shrink-0 rounded-[9px]" aria-hidden="true" />
                   <span className="flex-1">
-                    <span className="block text-sm font-medium">{award.name}</span>
+                    <span className="yt-award-name block text-sm font-semibold">{award.name}</span>
                     <span className="block text-xs text-muted">{award.at}</span>
                   </span>
                   <svg viewBox="0 0 16 16" className="yt-award-check h-4 w-4" aria-hidden="true">
