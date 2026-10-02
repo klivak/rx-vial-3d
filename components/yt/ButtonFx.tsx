@@ -103,6 +103,13 @@ export function OrbitRings() {
 const SCORE_R = 0.94;
 const SCORE_W = 0.045;
 const SCORE_SEGMENTS = 160;
+const TRACK_SEGMENTS = 96;
+
+/** 0 below `from`, 1 above `to`, eased in between. */
+const smooth = (from: number, to: number, v: number) => {
+  const x = Math.min(1, Math.max(0, (v - from) / (to - from)));
+  return x * x * (3 - 2 * x);
+};
 
 /** How far round the score ring has drawn, 0..score/100: the report scroll eased in and out. The button reads it to follow the head. */
 export function scoreArc() {
@@ -120,11 +127,12 @@ export const scoreBreath = (t: number) => 0.75 + 0.25 * Math.sin(t * 2.2);
  */
 export function ScoreRing() {
   const parts = useMemo(() => {
+    // Both the track and the arc start at the top; mirrored on x so they run clockwise, like the ring in the report card.
     const track = new Mesh(
-      new RingGeometry(SCORE_R - SCORE_W / 2, SCORE_R + SCORE_W / 2, 96),
-      new MeshBasicMaterial({ color: "#8FA8FF", transparent: true, opacity: 0, depthWrite: false, blending: AdditiveBlending }),
+      new RingGeometry(SCORE_R - SCORE_W / 2, SCORE_R + SCORE_W / 2, TRACK_SEGMENTS, 1, Math.PI / 2, Math.PI * 2),
+      new MeshBasicMaterial({ color: "#8FA8FF", transparent: true, opacity: 0, depthWrite: false, side: DoubleSide, blending: AdditiveBlending }),
     );
-    // Starts at the top; mirrored on x so it runs clockwise, like the ring in the report card.
+    track.scale.x = -1;
     const arcGeometry = new RingGeometry(SCORE_R - SCORE_W / 2, SCORE_R + SCORE_W / 2, SCORE_SEGMENTS, 1, Math.PI / 2, Math.PI * 2);
     const from = new Color("#2E59E7");
     const to = new Color("#7C3AED");
@@ -167,21 +175,28 @@ export function ScoreRing() {
 
   useFrame(({ clock }) => {
     const amount = ytState.score;
-    parts.group.visible = amount > 0.01;
+    // Staged on the way in, so nothing pops while the button is still flying over: the track draws itself round from the top,
+    // then the head drops onto the top, and only then does the arc fill (scoreArc). Scrolling back plays it in reverse.
+    const trackDraw = smooth(0.35, 0.8, amount);
+    const pop = smooth(0.72, 1, amount);
+    parts.group.visible = trackDraw > 0;
     if (!parts.group.visible) return;
-    const fade = Math.min(1, amount * 3);
+    parts.track.geometry.setDrawRange(0, 6 * Math.round(trackDraw * TRACK_SEGMENTS));
+    // Brighter while it draws, so the stroke reads as a moving line, then settles to a faint track.
+    (parts.track.material as MeshBasicMaterial).opacity = 0.1 + 0.3 * Math.sin(Math.PI * trackDraw);
     const progress = scoreArc();
     parts.arc.geometry.setDrawRange(0, 6 * Math.round(progress * SCORE_SEGMENTS));
-    (parts.track.material as MeshBasicMaterial).opacity = 0.1 * fade;
-    (parts.arc.material as MeshBasicMaterial).opacity = 0.95 * fade;
+    (parts.arc.material as MeshBasicMaterial).opacity = 0.95 * pop;
     const a = progress * Math.PI * 2;
     parts.head.position.set(Math.sin(a) * SCORE_R, Math.cos(a) * SCORE_R, 0.01);
     parts.halo.position.copy(parts.head.position);
-    // The head breathes slowly once the ring has drawn, so the score feels live.
+    // The head pops in with a small overshoot, then breathes slowly once the ring has drawn, so the score feels live.
     const breath = scoreBreath(clock.elapsedTime);
-    (parts.head.material as MeshBasicMaterial).opacity = fade;
-    (parts.halo.material as MeshBasicMaterial).opacity = 0.45 * fade * breath;
-    parts.halo.scale.setScalar(0.85 + 0.3 * breath);
+    const popScale = pop * (1 + 0.6 * Math.sin(Math.PI * pop));
+    parts.head.scale.setScalar(popScale);
+    (parts.head.material as MeshBasicMaterial).opacity = pop;
+    (parts.halo.material as MeshBasicMaterial).opacity = 0.45 * pop * breath;
+    parts.halo.scale.setScalar(popScale * (0.85 + 0.3 * breath));
   });
 
   return <primitive object={parts.group} />;
