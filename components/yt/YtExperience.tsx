@@ -62,7 +62,8 @@ export default function YtExperience({ onReady, onLost }: { onReady: () => void;
         });
       }}
     >
-      <PerformanceMonitor onDecline={() => setQuality("low")} onIncline={() => setQuality("high")} flipflops={3} />
+      {/* One-way: a slow device drops to the lower pixel ratio once and stays there; flipping back and forth resized the canvas and blinked. */}
+      <PerformanceMonitor onDecline={() => setQuality("low")} flipflops={1} />
       <YtScrollTimeline />
       <Studio />
       <PlayButton />

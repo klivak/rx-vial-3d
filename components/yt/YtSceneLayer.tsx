@@ -68,7 +68,8 @@ export function YtSceneLayer() {
 
   return (
     <>
-      <div id="scene-layer" className="fixed inset-0 z-0" aria-hidden="true">
+      {/* Sized to the largest viewport (lvh): the phone address bar showing or hiding must not resize the canvas and jolt the button. */}
+      <div id="scene-layer" className="fixed inset-x-0 top-0 z-0 h-lvh" aria-hidden="true">
         <div className="yt-backdrop absolute inset-0" />
         <div className="yt-grid absolute inset-0" />
         <div className="yt-glow absolute inset-0" />

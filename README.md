@@ -58,7 +58,7 @@ Stack: Next.js 15 (static export) · React Three Fiber · Three.js · GSAP Scrol
 
 ```bash
 pnpm install
-pnpm dev                       # http://localhost:3000
+pnpm dev                       # http://localhost:3210
 pnpm dev --hostname 0.0.0.0    # open from a phone on the same network
 pnpm build                     # static export to out/
 pnpm test                      # Playwright smoke tests against out/ (Android, iPhone, reduced motion, desktop)

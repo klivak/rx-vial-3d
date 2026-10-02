@@ -3,7 +3,7 @@
 // A stop is a number of viewport heights from the top ("1.5") or a section id plus viewport heights past its top ("scan:0.8").
 import { chromium, devices } from "@playwright/test";
 
-const url = process.argv[2] ?? "http://localhost:3000/youtube/";
+const url = process.argv[2] ?? "http://localhost:3210/youtube/";
 const stops = (process.argv[3] ?? "0,1.4").split(",");
 const only = process.argv[4];
 const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });

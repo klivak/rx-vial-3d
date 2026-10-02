@@ -4,7 +4,7 @@ import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import { AdditiveBlending, CanvasTexture, Color, Group, Mesh, MeshBasicMaterial, PlaneGeometry } from "three";
 import { parallax, startParallax } from "@/lib/parallax";
-import { useQuality } from "@/lib/quality";
+import { getQuality } from "@/lib/quality";
 import { buildPlayButton, buildRippleGeometry, PLAY_BUTTON_FRONT_Z, playButtonColors } from "@/lib/yt/buildPlayButton";
 import { AUDIT_URL } from "@/lib/yt/copy";
 import { ytPointer, ytState } from "@/lib/yt/state";
@@ -44,19 +44,14 @@ function streakTexture() {
   return new CanvasTexture(canvas);
 }
 
-/** Cheap deterministic noise: the glitch looks random but replays the same way at the same time. */
-const hash = (n: number) => {
-  const s = Math.sin(n * 127.1) * 43758.5453;
-  return s - Math.floor(s);
-};
 
 /**
  * The hero object. Scroll moves it between frames (ytState); on top of that it floats, turns towards the pointer, sinks in under
- * hover, presses with an outward ring on click, and loses its colour and stutters while the page talks about a stalled channel.
+ * hover, presses with an outward ring on click, and fades to grey while the page talks about a stalled channel.
  */
 export function PlayButton() {
-  const quality = useQuality();
-  const button = useMemo(() => buildPlayButton(quality === "high" ? "high" : "low"), [quality]);
+  // Built once at the starting tier: rebuilding on a runtime quality change swapped the meshes mid-animation and flashed.
+  const button = useMemo(() => buildPlayButton(getQuality() === "high" ? "high" : "low"), []);
   const rippleGeometry = useMemo(() => buildRippleGeometry(), []);
   const ripples = useMemo(
     () =>
@@ -96,7 +91,8 @@ export function PlayButton() {
   const tilt = useRef<Group>(null);
   const press = useRef<Group>(null);
 
-  useEffect(() => startParallax(), []);
+  // Mouse only: phone gyroscope noise made the button shiver.
+  useEffect(() => startParallax({ tilt: false }), []);
   useEffect(() => () => button.dispose(), [button]);
   useEffect(
     () => () => {
@@ -128,16 +124,9 @@ export function PlayButton() {
     p.press *= Math.exp(-delta * 5);
     if (p.press < 1e-3) p.press = 0;
 
-    // Glitch bursts while the channel is "sick": a few frames of offset and a flash of the old red, a couple of times a second.
-    const sick = 1 - s.health;
-    const slot = Math.floor(t * 2.3);
-    const glitch = sick > 0.4 && s.idle > 0 && hash(slot) > 0.6 && t * 2.3 - slot < 0.16 ? sick : 0;
-    const jitterX = glitch ? (hash(t * 60) - 0.5) * 0.05 : 0;
-    const jitterZ = glitch ? (hash(t * 47 + 3) - 0.5) * 0.12 : 0;
-
     const size = s.scale * vp.height;
     root.current.position.set(
-      (s.x * vp.width) / 2 + jitterX,
+      (s.x * vp.width) / 2,
       (s.y * vp.height) / 2 + Math.sin(t * 0.9) * 0.025 * s.idle * size,
       0,
     );
@@ -146,11 +135,11 @@ export function PlayButton() {
     tilt.current.rotation.set(
       s.rotX + smooth.y * TILT_X + Math.sin(t * 0.7) * 0.035 * s.idle,
       s.rotY + smooth.x * TILT_Y + Math.sin(t * 0.5) * 0.09 * s.idle,
-      s.rotZ + Math.sin(t * 0.43) * 0.02 * s.idle + jitterZ,
+      s.rotZ + Math.sin(t * 0.43) * 0.02 * s.idle,
     );
     press.current.scale.z = 1 - p.hover * 0.12 - p.press * 0.3;
 
-    const health = glitch ? Math.max(s.health, 0.55) : s.health;
+    const health = s.health;
     button.bodyMaterial.color.copy(dim).lerp(red, health);
     button.bodyMaterial.roughness = 0.62 - 0.3 * health;
     button.bodyMaterial.clearcoat = 0.25 + 0.75 * health;

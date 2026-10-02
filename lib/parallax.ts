@@ -4,7 +4,7 @@
  */
 export const parallax = { x: 0, y: 0 };
 
-export function startParallax(): () => void {
+export function startParallax({ tilt: useTilt = true }: { tilt?: boolean } = {}): () => void {
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return () => {};
 
   const pointer = (e: PointerEvent) => {
@@ -24,7 +24,7 @@ export function startParallax(): () => void {
   window.addEventListener("pointermove", pointer, { passive: true });
   // iOS gates orientation behind a permission prompt; we never ask, so iPhones keep the plain camera.
   const needsPermission = typeof (window.DeviceOrientationEvent as unknown as { requestPermission?: unknown })?.requestPermission === "function";
-  if (!needsPermission) window.addEventListener("deviceorientation", tilt, { passive: true });
+  if (useTilt && !needsPermission) window.addEventListener("deviceorientation", tilt, { passive: true });
   return () => {
     window.removeEventListener("pointermove", pointer);
     window.removeEventListener("deviceorientation", tilt);

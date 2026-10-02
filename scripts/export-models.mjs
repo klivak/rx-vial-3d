@@ -4,7 +4,7 @@ import { chromium } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 
 const BUDGET = 1024 * 1024;
-const url = process.argv[2] ?? "http://localhost:3000/export/";
+const url = process.argv[2] ?? "http://localhost:3210/export/";
 
 const browser = await chromium.launch();
 const page = await browser.newPage();
