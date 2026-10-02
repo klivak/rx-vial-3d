@@ -14,32 +14,23 @@ const WAVE = "M-30 1 q7.5 -2 15 0 t15 0 t15 0 t15 0 V24 H-30 Z";
 const CREEP_MAX = 82;
 const CREEP_MS = 3200;
 
-/** A feed of faux video thumbnails drifting behind the loader: rows in alternating directions, every card a different colour. */
-const FEED = [
-  ["#FF3D3D", "#FFB238"],
-  ["#2E59E7", "#22D3EE"],
-  ["#7C3AED", "#F472B6"],
-  ["#16A34A", "#A3E635"],
-  ["#111827", "#FF0033"],
-  ["#F59E0B", "#EF4444"],
-  ["#0EA5E9", "#6366F1"],
-  ["#DB2777", "#F59E0B"],
-  ["#14B8A6", "#3B82F6"],
-  ["#F97316", "#FDE047"],
-  ["#4C1D95", "#06B6D4"],
-  ["#BE123C", "#FB7185"],
-  ["#065F46", "#34D399"],
-  ["#1E3A8A", "#A855F7"],
-  ["#EAB308", "#84CC16"],
-  ["#E11D48", "#7C3AED"],
-  ["#0F766E", "#FACC15"],
-  ["#9333EA", "#F97316"],
-];
-/** One run of cards is 18 × 238px ≈ 4.3k px, wider than a 4K screen, so the doubled run never shows its end while it slides by one run. */
+/** A feed of faux video thumbnails drifting behind the loader: rows in alternating directions. */
 const FEED_ROWS = [0, 1, 2, 3, 4, 5];
-/** Each row starts at a different card and steps through the palette at its own stride, so no two rows (or neighbours) repeat the same order. */
-const STRIDES = [1, 5, 7, 11, 13, 17];
-const feedRow = (row: number) => FEED.map((_, i) => FEED[(row * 7 + i * STRIDES[row]) % FEED.length]);
+/** One run of cards is 18 × 238px ≈ 4.3k px, wider than a 4K screen, so the doubled run never shows its end while it slides by one run. */
+const FEED_CARDS = 18;
+/**
+ * Every card in the feed gets its own colour: hues step by the golden angle across all 108 cards, so no two cards (in a row or
+ * between rows) match, and saturation, lightness and the hue spread of each gradient vary so the rows don't read as one palette.
+ */
+const feedCard = (row: number, i: number) => {
+  const k = row * FEED_CARDS + i;
+  const h = (k * 137.508) % 360;
+  const s = 62 + ((k * 37) % 30);
+  const l = 44 + ((k * 23) % 16);
+  const spread = 28 + ((k * 53) % 60);
+  return `linear-gradient(${115 + row * 12}deg, hsl(${h.toFixed(1)} ${s}% ${l}%), hsl(${((h + spread) % 360).toFixed(1)} ${s + 8}% ${l + 10}%))`;
+};
+const feedRow = (row: number) => Array.from({ length: FEED_CARDS }, (_, i) => feedCard(row, i));
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 
@@ -134,8 +125,8 @@ export function YtLoader({ target, done }: { target: number; done: boolean }) {
       <div className="yt-feed absolute inset-0" aria-hidden="true">
         {FEED_ROWS.map((row) => (
           <div key={row} className="yt-feed-row" style={{ "--row": row } as CSSProperties}>
-            {[...feedRow(row), ...feedRow(row)].map(([from, to], i) => (
-              <span key={i} className="yt-feed-card" style={{ background: `linear-gradient(135deg, ${from}, ${to})` }} />
+            {[...feedRow(row), ...feedRow(row)].map((background, i) => (
+              <span key={i} className="yt-feed-card" style={{ background }} />
             ))}
           </div>
         ))}
