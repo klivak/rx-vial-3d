@@ -236,21 +236,24 @@ export function YtLoader({ target, done }: { target: number; done: boolean }) {
             </g>
           </svg>
         </div>
-        <p className="yt-loader-fade mt-9 text-xs font-medium uppercase tracking-[0.32em] text-muted">{ytCopy.loader.label}</p>
+        <p className="yt-loader-fade mt-9 flex items-center gap-2.5 text-[11px] font-medium uppercase tracking-[0.34em] text-muted">
+          <span className="yt-loader-dot" aria-hidden="true" />
+          {ytCopy.loader.label}
+        </p>
 
-        <div className="yt-loader-fade mt-7 w-[min(18rem,72vw)]">
-          <div className="flex items-end justify-between">
-            <span data-l-step className="text-xs text-muted">
+        <div className="yt-loader-fade yt-loader-panel mt-6 w-[min(19rem,76vw)] px-5 pb-5 pt-4">
+          <div className="flex items-end justify-between gap-4">
+            <span data-l-step className="pb-1 text-xs text-foreground/70">
               {ytCopy.loader.steps[0]}
             </span>
-            <span className="text-2xl font-semibold tabular-nums tracking-tight">
+            <span className="yt-loader-pct text-3xl font-light tabular-nums leading-none tracking-tight">
               <span data-l-pct />
-              <span className="ml-0.5 text-sm text-muted">%</span>
+              <span className="ml-0.5 align-top text-xs font-medium text-muted">%</span>
             </span>
           </div>
-          <div className="relative mt-3 h-1 rounded-full bg-white/10">
-            <span data-l-bar className="absolute inset-0 origin-left rounded-full bg-[#FF0033]" style={{ transform: "scaleX(0)" }} />
-            <span data-l-knob className="yt-loader-knob absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#FF0033]" style={{ left: 0 }} />
+          <div className="yt-loader-track relative mt-4 h-[3px]">
+            <span data-l-bar className="yt-loader-bar absolute inset-0 origin-left" style={{ transform: "scaleX(0)" }} />
+            <span data-l-knob className="yt-loader-knob absolute top-1/2 h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white" style={{ left: 0 }} />
           </div>
         </div>
       </div>

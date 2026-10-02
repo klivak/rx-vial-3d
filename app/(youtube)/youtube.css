@@ -132,7 +132,42 @@ html.lenis, html.lenis body { height: auto; }
   opacity: calc(0.35 + 0.65 * var(--fill, 0));
   pointer-events: none;
 }
-.yt-loader-knob { box-shadow: 0 0 0 4px rgb(255 0 51 / 0.18); }
+/* Progress panel: a faint glass card, a gradient fill with a sheen and a glowing white head. */
+.yt-loader-panel {
+  border-radius: 1.1rem;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.05), rgb(255 255 255 / 0.015));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06), 0 20px 50px -20px rgb(0 0 0 / 0.7);
+  backdrop-filter: blur(14px);
+}
+@media (max-width: 640px) { .yt-loader-panel { backdrop-filter: none; background: rgb(14 14 16 / 0.85); } }
+.yt-loader-pct {
+  background: linear-gradient(180deg, #fff 30%, rgb(255 255 255 / 0.55));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.yt-loader-pct > span:last-child { -webkit-text-fill-color: var(--color-muted, rgb(255 255 255 / 0.5)); }
+}
+.yt-loader-track { border-radius: 999px; background: rgb(255 255 255 / 0.1); }
+.yt-loader-bar {
+  border-radius: inherit;
+  background: linear-gradient(90deg, #9E0024, #FF0033 70%, #ff5c7a);
+  box-shadow: 0 0 12px rgb(255 0 51 / 0.55);
+  overflow: hidden;
+}
+@keyframes yt-bar-sheen { from { transform: translateX(-100%); } to { transform: translateX(250%); } }
+.yt-loader-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.55), transparent);
+  animation: yt-bar-sheen 1.8s ease-in-out infinite;
+}
+.yt-loader-knob { box-shadow: 0 0 0 3px rgb(255 0 51 / 0.35), 0 0 14px 3px rgb(255 0 51 / 0.7); }
+@keyframes yt-dot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.45; transform: scale(0.75); } }
+.yt-loader-dot { width: 6px; height: 6px; border-radius: 999px; background: #FF0033; box-shadow: 0 0 8px #FF0033; animation: yt-dot 1.4s ease-in-out infinite; }
 
 /* Exit: the button presses, two rings run out from it, then it fades as the circle opens. */
 @keyframes yt-press {
@@ -427,6 +462,7 @@ html:not(.is-loading) .yt-chip[data-intro] { animation-name: yt-chip-in; animati
 .yt-subs { background: linear-gradient(100deg, #f6f7fb, #c9d1e6); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 @media (prefers-reduced-motion: reduce) {
+  .yt-loader-bar::after, .yt-loader-dot { animation: none; }
   .yt-aurora::before, .yt-aurora::after, .yt-chip > span, .yt-now-pulse, html:not(.is-loading) .yt-hl { animation: none; }
   .yt-btn-primary::after { display: none; }
   .yt-live-dot::after { animation: none; }
