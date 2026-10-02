@@ -18,7 +18,8 @@ export function YtHero() {
     <section data-yt-frame="hero" className="relative px-6 md:px-16">
       {/* The column lets pointer events fall through to the 3D button; only the text block catches them. */}
       <div className="yt-container pointer-events-none! relative flex min-h-svh flex-col justify-start pt-[13svh] md:justify-center md:pt-0">
-        <div className="pointer-events-auto max-w-xl md:max-w-[29rem] lg:max-w-[32rem]">
+        {/* On wide screens the column grows with the container, stopping short of the chips left of the button (~57 % in). */}
+        <div className="pointer-events-auto max-w-xl md:max-w-[29rem] lg:max-w-[max(32rem,46cqw)]">
           <p data-intro style={stagger(1)} className="yt-eyebrow">
             <span className="yt-live-dot" aria-hidden="true" />
             {c.eyebrow}
@@ -26,7 +27,7 @@ export function YtHero() {
           <h1
             data-intro
             style={stagger(2)}
-            className="mt-5 text-[2.25rem] font-semibold leading-[1.04] tracking-[-0.035em] sm:text-[3.4rem] lg:text-[4rem]"
+            className="mt-5 text-[2.25rem] font-semibold leading-[1.04] tracking-[-0.035em] sm:text-[3.4rem] lg:text-[max(4rem,4.3cqw)]"
           >
             {before}
             <span className="yt-hl">{c.highlight}</span>
@@ -35,7 +36,7 @@ export function YtHero() {
           <p
             data-intro
             style={stagger(3)}
-            className="mt-5 max-w-md text-[0.95rem] leading-relaxed text-muted sm:mt-6 sm:text-[1.05rem]"
+            className="mt-5 max-w-md text-[0.95rem] leading-relaxed text-muted sm:mt-6 sm:text-[1.05rem] lg:max-w-[max(28rem,36cqw)]"
           >
             {c.lead}
           </p>
