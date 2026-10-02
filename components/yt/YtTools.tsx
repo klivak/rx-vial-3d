@@ -15,12 +15,12 @@ export function YtTools() {
           <SectionHead center eyebrow={c.eyebrow} title={c.title} lead={c.lead} />
           <ul className="mt-8 grid gap-3 sm:grid-cols-2 md:mt-0">
             {c.items.map((tool, i) => (
-              <li key={tool.name} data-orbit-item className="yt-tool yt-glass rounded-2xl p-4 md:absolute md:left-1/2 md:top-[62%] md:w-60">
-                <span className="yt-tool-icon flex h-8 w-8 items-center justify-center rounded-xl text-xs font-semibold" aria-hidden="true">
+              <li key={tool.name} data-orbit-item className="yt-tool yt-glass rounded-2xl p-5 md:absolute md:left-1/2 md:top-[62%] md:w-64 lg:w-72">
+                <span className="yt-tool-icon flex h-10 w-10 items-center justify-center rounded-xl text-sm font-semibold" aria-hidden="true">
                   {String(i + 1).padStart(2, "0")}
                 </span>
-                <h3 className="mt-3 text-sm font-semibold">{tool.name}</h3>
-                <p className="mt-1 text-xs leading-relaxed text-muted">{tool.text}</p>
+                <h3 className="mt-4 text-base font-semibold">{tool.name}</h3>
+                <p className="mt-1.5 text-sm leading-relaxed text-muted">{tool.text}</p>
               </li>
             ))}
           </ul>
