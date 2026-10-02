@@ -171,13 +171,15 @@ html.lenis, html.lenis body { height: auto; }
 /* "Press the button" sits just under the 3D button, right of centre. */
 .yt-press-hint { left: calc(var(--cx) + var(--btn-w) * 0.02); top: calc(var(--cy) + var(--btn-h) * 0.5 + 44px); }
 
-/* Pains light up in turn (--lit 0..1 from the scroll); the dot turns from grey to YouTube red. Lit by default without JS. */
+/* Pains light up in turn (--lit 0..1 from the scroll); the dot turns from grey to YouTube red. Lit by default without JS. The card frames stay put so their edges line up; only the dot and text fade and slide into place inside them. */
 .yt-pain {
   --lit: 1;
-  opacity: calc(0.4 + 0.6 * var(--lit));
   background: rgb(255 255 255 / calc(0.05 * var(--lit)));
   box-shadow: inset 0 0 0 1px rgb(255 255 255 / calc(0.08 * var(--lit)));
-  transform: translateX(calc((1 - var(--lit)) * 10px));
+}
+.yt-pain > * {
+  opacity: calc(0.4 + 0.6 * var(--lit));
+  transform: translateX(calc((1 - var(--lit)) * 8px));
 }
 .yt-pain-dot {
   background: color-mix(in srgb, var(--yt-red) calc(var(--lit) * 100%), #5a5f70);
