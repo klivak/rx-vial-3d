@@ -114,17 +114,39 @@ function report() {
   tl.from(q("[data-row]", section), { opacity: 0, x: 18, duration: 0.7, ease: "power3.out", stagger: 0.07 }, 0.5);
 }
 
-/** Screen 6: benchmark bars grow from zero, row by row, when the card scrolls in. */
+/**
+ * Screen 6: the benchmark plays once, in reading order. The legend arrives, then each chart in turn: its label, its rows sliding in,
+ * bars growing and numbers counting up from zero, with the next chart starting as the previous one settles. The insight lands last.
+ */
 function bench() {
   const section = document.querySelector<HTMLElement>("[data-bench]");
-  if (!section) return;
-  gsap.from(q("[data-bench-bar]", section), {
-    scaleX: 0,
-    duration: 1.1,
-    ease: "power3.out",
-    stagger: 0.05,
-    scrollTrigger: { trigger: section.querySelector(".yt-glass") ?? section, start: "top 70%", toggleActions: "play none none reverse" },
+  if (!section) return () => {};
+  const card = section.querySelector(".yt-glass") ?? section;
+  const values = q("[data-bench-value]", section);
+  const finals = values.map((el) => el.textContent ?? "");
+  // The card itself fades in with the section reveal; the charts wait a beat so they play on a card that is already there.
+  const tl = gsap.timeline({ delay: 0.25, scrollTrigger: { trigger: card, start: "top 70%", toggleActions: "play none none reverse" } });
+  tl.from(q("[data-bench-legend]", section), { opacity: 0, y: 8, duration: 0.5, ease: "power2.out", stagger: 0.07 }, 0);
+  q("[data-bench-metric]", section).forEach((metric, k) => {
+    const at = 0.35 + k * 0.7;
+    tl.from(metric.querySelector("[data-bench-label]"), { opacity: 0, x: -12, duration: 0.5, ease: "power2.out" }, at);
+    tl.from(q("[data-bench-row]", metric), { opacity: 0, x: 14, duration: 0.55, ease: "power3.out", stagger: 0.08 }, at + 0.08);
+    tl.from(q("[data-bench-bar]", metric), { scaleX: 0, duration: 1.2, ease: "expo.out", stagger: 0.08 }, at + 0.18);
+    q("[data-bench-value]", metric).forEach((el, i) => {
+      const value = Number(el.dataset.benchValue);
+      const decimals = Number(el.dataset.decimals);
+      const suffix = finals[values.indexOf(el)].slice(String(value).length);
+      const n = { v: 0 };
+      tl.fromTo(
+        n,
+        { v: 0 },
+        { v: value, duration: 1.2, ease: "expo.out", onUpdate: () => (el.textContent = n.v.toFixed(decimals) + suffix) },
+        at + 0.18 + i * 0.08,
+      );
+    });
   });
+  tl.from(section.querySelector("[data-bench-insight]"), { opacity: 0, y: 16, filter: "blur(6px)", duration: 0.8, ease: "power3.out", clearProps: "filter" }, "-=0.7");
+  return () => values.forEach((el, i) => (el.textContent = finals[i]));
 }
 
 /** Screen 5: twelve thumbnails start scattered over the screen and the scroll sorts them into "best" and "weakest". */
@@ -288,7 +310,7 @@ export function YtMotion() {
         scan(desktop);
         report();
         thumbs();
-        bench();
+        cleanups.push(bench());
       }
       return () => cleanups.forEach((fn) => fn());
     });
