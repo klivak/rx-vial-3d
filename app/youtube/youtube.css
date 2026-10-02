@@ -57,9 +57,22 @@ html.lenis, html.lenis body { height: auto; }
   .yt-poster { left: 55%; top: 87%; height: 12vh; transform: translate(-50%, -50%); }
 }
 
-/* Loader mark: the triangle breathes while the scene boots. */
-@keyframes yt-tri-pulse { 50% { opacity: 0.55; } }
-.yt-loader-mark .play-mark-tri { animation: yt-tri-pulse 1.2s ease-in-out infinite; }
+/* Loader: holds 100 % for a beat, then the button swells and blurs away while the screen fades to the page. */
+.yt-loader { transition: opacity 0.8s cubic-bezier(0.65, 0, 0.35, 1) 0.45s, visibility 0s linear 1.25s; }
+.yt-loader.is-done { opacity: 0; visibility: hidden; pointer-events: none; }
+.yt-loader-stage { transition: transform 1s cubic-bezier(0.65, 0, 0.35, 1) 0.4s, filter 0.8s ease 0.45s, opacity 0.8s ease 0.45s; }
+.yt-loader.is-done .yt-loader-stage { transform: scale(1.18); filter: blur(10px); opacity: 0; }
+.yt-loader-halo {
+  position: absolute;
+  top: -3rem;
+  left: 50%;
+  width: 22rem;
+  height: 14rem;
+  transform: translateX(-50%);
+  background: radial-gradient(closest-side, rgb(255 0 51 / 0.22), transparent);
+  pointer-events: none;
+}
+.yt-loader-knob { box-shadow: 0 0 0 4px rgb(255 0 51 / 0.18); }
 
 /* Small type and surfaces */
 .yt-eyebrow {
@@ -120,7 +133,87 @@ html.lenis, html.lenis body { height: auto; }
   box-shadow: 0 0 calc(var(--lit) * 12px) rgb(255 0 51 / calc(var(--lit) * 0.6));
 }
 
+/* Screen 3: check groups light up (--lit) and their checks tick (--on), both driven by the scroll. Lit by default without JS. */
+.yt-scan-group {
+  --lit: 1;
+  opacity: calc(0.45 + 0.55 * var(--lit));
+  border-color: rgb(110 139 255 / calc(0.08 + 0.3 * var(--lit)));
+  box-shadow: 0 0 calc(var(--lit) * 40px) rgb(46 89 231 / calc(var(--lit) * 0.18));
+}
+.yt-scan-badge { color: color-mix(in srgb, #6e8bff calc(var(--lit) * 100%), var(--muted)); }
+.yt-scan-item { --on: 1; color: color-mix(in srgb, var(--foreground) calc(40% + var(--on) * 60%), transparent); }
+.yt-scan-ring { fill: rgb(46 89 231 / calc(var(--on) * 0.25)); stroke: rgb(110 139 255 / calc(0.25 + var(--on) * 0.75)); stroke-width: 1.2; }
+.yt-scan-tick { fill: none; stroke: #fff; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: calc(1 - var(--on)); }
+
+/* Screen 4: the sample report. */
+.yt-report { box-shadow: 0 30px 80px rgb(0 0 0 / 0.35); }
+.yt-avatar { background: conic-gradient(from 200deg, #2e59e7, #7c3aed, #ff0033, #2e59e7); }
+.yt-bar { background: linear-gradient(90deg, #2e59e7, #7c3aed); }
+.yt-verdict.is-good { color: #4ade80; background: rgb(74 222 128 / 0.1); }
+.yt-verdict.is-ok { color: #93a8ff; background: rgb(110 139 255 / 0.12); }
+.yt-verdict.is-mid { color: #fbbf24; background: rgb(251 191 36 / 0.1); }
+.yt-verdict.is-bad { color: #ff5c7a; background: rgb(255 0 51 / 0.12); }
+.yt-bottleneck { background: linear-gradient(90deg, rgb(255 0 51 / 0.12), rgb(255 0 51 / 0.02)); box-shadow: inset 2px 0 0 #ff0033; }
+
+/* Screen 5: thumbnails. */
+.yt-thumb { will-change: transform; }
+.yt-thumb > div { box-shadow: 0 10px 30px rgb(0 0 0 / 0.35); transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+.yt-thumb:hover > div { transform: translateY(-3px) scale(1.03); }
+
+/* Screen 6: plan cards with a pointer spotlight and tilt. */
+.yt-spot {
+  transform: perspective(900px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 0.4s ease-out, box-shadow 0.4s ease-out;
+}
+.yt-spot::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  background: radial-gradient(280px circle at var(--mx, 50%) var(--my, 50%), rgb(110 139 255 / 0.16), transparent 70%);
+}
+.yt-spot:hover::before { opacity: 1; }
+.yt-plan { background: rgb(255 255 255 / 0.035); border: 1px solid rgb(255 255 255 / 0.08); }
+.yt-plan.is-featured {
+  background: linear-gradient(var(--background), var(--background)) padding-box, linear-gradient(160deg, #2e59e7, #7c3aed 60%, rgb(255 255 255 / 0.08)) border-box;
+  border: 1px solid transparent;
+  box-shadow: 0 30px 80px rgb(46 89 231 / 0.18);
+}
+.yt-badge { color: #fff; background: linear-gradient(135deg, #2e59e7, #7c3aed); }
+
+/* Screen 7: the step track fills with the scroll and each step dot lights as it is reached. */
+.yt-track { background: linear-gradient(90deg, #2e59e7, #7c3aed, #ff0033); }
+@media (max-width: 767px) { .yt-track { background: linear-gradient(180deg, #2e59e7, #7c3aed, #ff0033); } }
+.yt-step { --lit: 1; opacity: calc(0.4 + 0.6 * var(--lit)); }
+.yt-step-dot {
+  color: #fff;
+  background: color-mix(in srgb, #2e59e7 calc(var(--lit) * 100%), #1c2238);
+  box-shadow: 0 0 0 4px var(--background), 0 0 calc(var(--lit) * 18px) rgb(46 89 231 / calc(var(--lit) * 0.6));
+}
+
+/* Screen 8: tool cards. */
+.yt-tool { transition: border-color 0.3s ease, background-color 0.3s ease; }
+.yt-tool:hover { border-color: rgb(110 139 255 / 0.4); background: rgb(46 89 231 / 0.08); }
+.yt-tool-icon { color: #c7d2fe; background: linear-gradient(135deg, rgb(46 89 231 / 0.35), rgb(124 58 237 / 0.35)); }
+
+/* Screen 10: FAQ, a plus that turns into a minus, and a height animation where the browser supports it. */
+.yt-faq summary::-webkit-details-marker { display: none; }
+.yt-faq-icon::before, .yt-faq-icon::after { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1.5px; background: currentColor; transition: transform 0.3s ease; }
+.yt-faq-icon::after { transform: rotate(90deg); }
+.yt-faq[open] .yt-faq-icon::after { transform: rotate(0deg); }
+@supports (interpolate-size: allow-keywords) {
+  .yt-page { interpolate-size: allow-keywords; }
+  .yt-faq::details-content { height: 0; overflow: clip; transition: height 0.45s cubic-bezier(0.65, 0, 0.35, 1), content-visibility 0.45s allow-discrete; }
+  .yt-faq[open]::details-content { height: auto; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .yt-live-dot, .yt-loader-mark .play-mark-tri { animation: none; }
-  .yt-btn-primary, .yt-btn-ghost { transition: none; }
+  .yt-live-dot { animation: none; }
+  .yt-btn-primary, .yt-btn-ghost, .yt-spot, .yt-thumb > div { transition: none; }
+  .yt-spot { transform: none; }
+  .yt-loader, .yt-loader-stage { transition-duration: 0.2s; transition-delay: 0s; }
+  .yt-loader.is-done .yt-loader-stage { transform: none; filter: none; }
 }

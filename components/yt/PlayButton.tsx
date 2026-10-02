@@ -2,10 +2,11 @@
 
 import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
-import { AdditiveBlending, Color, Group, Mesh, MeshBasicMaterial } from "three";
+import { AdditiveBlending, CanvasTexture, Color, Group, Mesh, MeshBasicMaterial, PlaneGeometry } from "three";
 import { parallax, startParallax } from "@/lib/parallax";
 import { useQuality } from "@/lib/quality";
 import { buildPlayButton, buildRippleGeometry, PLAY_BUTTON_FRONT_Z, playButtonColors } from "@/lib/yt/buildPlayButton";
+import { AUDIT_URL } from "@/lib/yt/copy";
 import { ytPointer, ytState } from "@/lib/yt/state";
 
 /** Radians the button turns towards the pointer (or the phone's tilt). */
@@ -19,6 +20,29 @@ const dim = new Color(playButtonColors.redDim);
 const white = new Color(playButtonColors.triangle);
 const whiteDim = new Color("#8E93A3");
 const smooth = { x: 0, y: 0 };
+
+/** Soft streak for the scan line: bright in the middle, fading to nothing at the sides and towards the ends. */
+function streakTexture() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 64;
+  canvas.height = 128;
+  const ctx = canvas.getContext("2d")!;
+  const across = ctx.createLinearGradient(0, 0, 64, 0);
+  across.addColorStop(0, "rgba(255,255,255,0)");
+  across.addColorStop(0.5, "rgba(255,255,255,1)");
+  across.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = across;
+  ctx.fillRect(0, 0, 64, 128);
+  ctx.globalCompositeOperation = "destination-in";
+  const along = ctx.createLinearGradient(0, 0, 0, 128);
+  along.addColorStop(0, "rgba(0,0,0,0)");
+  along.addColorStop(0.2, "rgba(0,0,0,1)");
+  along.addColorStop(0.8, "rgba(0,0,0,1)");
+  along.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = along;
+  ctx.fillRect(0, 0, 64, 128);
+  return new CanvasTexture(canvas);
+}
 
 /** Cheap deterministic noise: the glitch looks random but replays the same way at the same time. */
 const hash = (n: number) => {
@@ -47,6 +71,25 @@ export function PlayButton() {
       }),
     [rippleGeometry],
   );
+  // Scan line: a bright core and a wide soft halo, swept across the face while the audit "reads" the channel.
+  const streak = useMemo(() => streakTexture(), []);
+  const scanLines = useMemo(
+    () =>
+      [
+        [0.05, 1],
+        [0.4, 0.35],
+      ].map(([width, strength]) => {
+        const m = new Mesh(
+          new PlaneGeometry(width, 1.1),
+          new MeshBasicMaterial({ color: "#8FA8FF", map: streak, transparent: true, opacity: 0, depthWrite: false, blending: AdditiveBlending }),
+        );
+        m.position.z = PLAY_BUTTON_FRONT_Z + 0.06;
+        m.userData.strength = strength;
+        m.visible = false;
+        return m;
+      }),
+    [streak],
+  );
   const clock = useThree((st) => st.clock);
   const invalidate = useThree((st) => st.invalidate);
   const root = useRef<Group>(null);
@@ -59,8 +102,13 @@ export function PlayButton() {
     () => () => {
       rippleGeometry.dispose();
       ripples.forEach((r) => (r.material as MeshBasicMaterial).dispose());
+      scanLines.forEach((l) => {
+        l.geometry.dispose();
+        (l.material as MeshBasicMaterial).dispose();
+      });
+      streak.dispose();
     },
-    [rippleGeometry, ripples],
+    [rippleGeometry, ripples, scanLines, streak],
   );
 
   useFrame(({ clock, viewport, camera, invalidate }, delta) => {
@@ -123,9 +171,18 @@ export function PlayButton() {
       (ring.material as MeshBasicMaterial).opacity = (1 - age) * (1 - age) * (0.85 - i * 0.3);
     });
 
+    // The sweep eases across the face and fades at both edges, about once every 1.8 s.
+    const phase = (t / 1.8) % 1;
+    const sweep = phase * phase * (3 - 2 * phase);
+    scanLines.forEach((line) => {
+      line.visible = s.scan > 0.01;
+      line.position.x = (sweep - 0.5) * 1.5;
+      (line.material as MeshBasicMaterial).opacity = s.scan * line.userData.strength * Math.sin(Math.PI * phase);
+    });
+
     // Demand frameloop: keep drawing while anything is alive; otherwise the GPU rests until the next scroll update.
     const settling = Math.abs(parallax.x - smooth.x) + Math.abs(parallax.y - smooth.y) > 1e-3 || Math.abs(p.hoverTarget - p.hover) > 1e-3;
-    if (s.idle > 0 || p.press > 0 || ringsLive || settling) invalidate();
+    if (s.idle > 0 || s.scan > 0.01 || p.press > 0 || ringsLive || settling) invalidate();
   });
 
   const over = (e: ThreeEvent<PointerEvent>) => {
@@ -144,6 +201,8 @@ export function PlayButton() {
     ytPointer.press = 1;
     ytPointer.rippleAt = clock.elapsedTime;
     invalidate();
+    // On the final screen the button is the call to action: let the press and the first ring play, then go.
+    if (ytState.link > 0.5) setTimeout(() => window.location.assign(AUDIT_URL), 420);
   };
 
   return (
@@ -154,6 +213,9 @@ export function PlayButton() {
         </group>
         {ripples.map((r, i) => (
           <primitive key={i} object={r} />
+        ))}
+        {scanLines.map((l, i) => (
+          <primitive key={`scan-${i}`} object={l} />
         ))}
       </group>
     </group>

@@ -27,7 +27,7 @@ export function YtHero() {
           <a href={AUDIT_URL} className="yt-btn-primary rounded-full px-6 py-3.5 text-sm font-medium sm:text-base">
             {c.cta}
           </a>
-          <a href="#problem" className="yt-btn-ghost rounded-full px-6 py-3.5 text-sm font-medium sm:text-base">
+          <a href="#scan" className="yt-btn-ghost rounded-full px-6 py-3.5 text-sm font-medium sm:text-base">
             {c.secondary}
           </a>
         </div>

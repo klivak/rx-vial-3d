@@ -1,23 +1,45 @@
 import { expect, test } from "@playwright/test";
 
-test("YouTube page boots: headline first, then the 3D button, without errors", async ({ page }) => {
+const AUDIT = "https://my.air.io/audit";
+
+test("YouTube page boots: loader, headline, then the 3D button, without errors", async ({ page }) => {
   const errors: string[] = [];
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
   await page.goto("youtube/");
 
-  await expect(page.getByRole("heading", { level: 1, name: "Putting in the work, but the views aren’t coming?" })).toBeVisible();
+  await expect(page.getByRole("progressbar", { name: "Loading" })).toBeAttached();
+  await expect(page.getByRole("heading", { level: 1, name: "Putting in the work, but the views aren’t coming?" })).toBeAttached();
   await expect(page.locator("#scene-layer canvas")).toBeAttached({ timeout: 20_000 });
   await expect(page.locator("html")).not.toHaveClass(/is-loading/, { timeout: 10_000 });
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
   await page.getByRole("link", { name: "See what’s inside" }).click();
-  await expect(page.getByRole("heading", { level: 2, name: "It feels like the algorithm. It usually isn’t." })).toBeInViewport({ timeout: 5_000 });
+  await expect(page.getByRole("heading", { level: 2, name: "Your channel, read through 35+ independent lenses." })).toBeInViewport({ timeout: 5_000 });
   expect(errors).toEqual([]);
 });
 
-test("YouTube page CTAs lead to the public audit page", async ({ page }) => {
+test("YouTube page has all ten screens with real headings", async ({ page }) => {
   await page.goto("youtube/");
-  for (const name of ["Check my channel", "Check my channel for free"]) {
-    await expect(page.getByRole("link", { name, exact: true })).toHaveAttribute("href", "https://air.io/features/youtube-channel-audit");
-  }
+  await expect(page.locator("[data-yt-frame]")).toHaveCount(10);
+  // SplitWords puts a space inside every word mask, so compare text with whitespace collapsed.
+  const headings = (await page.getByRole("heading", { level: 2 }).allTextContents()).map((t) => t.replace(/\s+/g, " ").trim());
+  expect(headings).toEqual([
+    "It feels like the algorithm. It usually isn’t.",
+    "Your channel, read through 35+ independent lenses.",
+    "One score. One bottleneck. One plan.",
+    "Your 15 best and 15 weakest, side by side.",
+    "Start free. Go deeper when you’re ready.",
+    "From channel to a real action plan in four steps.",
+    "A whole studio of tools around your channel.",
+    "Press play on your channel.",
+    "Questions creators ask",
+  ]);
+});
+
+test("every call to action opens the YouTube audit", async ({ page }) => {
+  await page.goto("youtube/");
+  const ctas = page.getByRole("link", { name: /Check my channel|Start here|See price/ });
+  expect(await ctas.count()).toBeGreaterThanOrEqual(6);
+  for (const link of await ctas.all()) await expect(link).toHaveAttribute("href", AUDIT);
 });

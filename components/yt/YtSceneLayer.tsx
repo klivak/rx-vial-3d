@@ -3,10 +3,12 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { PlayMark } from "@/components/yt/PlayMark";
+import { YtLoader } from "@/components/yt/YtLoader";
 import { startSmoothScroll, unlockScroll } from "@/lib/yt/smoothScroll";
 
 const MAX_LOADER_MS = 7000;
-const MIN_LOADER_MS = 1500;
+/** Long enough to read the loader as an intro, not a flash. */
+const MIN_LOADER_MS = 2400;
 const SETTLE_MS = 500;
 
 const YtExperience = dynamic(() => import("@/components/yt/YtExperience"), { ssr: false });
@@ -21,21 +23,31 @@ function hasWebGL() {
 }
 
 /**
- * Fixed backdrop of the YouTube page: brand light and grid, the red glow that trails the button, the 3D canvas, and a loader with
- * a YouTube-style progress line that holds the page (and Lenis) until the first frame. Without WebGL the flat button stays.
+ * Fixed backdrop of the YouTube page: brand light and grid, the red glow that trails the button, the 3D canvas, and a player-style
+ * loader that holds the page (and Lenis) until the first frame. Without WebGL the flat button stays.
  */
 export function YtSceneLayer() {
   const [webgl, setWebgl] = useState(false);
   const [ready, setReady] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  // Real milestones for the loader bar: page hydrated, 3D code downloaded, first frame drawn.
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     history.scrollRestoration = "manual";
     window.scrollTo(0, 0);
-    if (hasWebGL()) setWebgl(true);
-    else setLoaded(true);
+    setProgress(20);
+    if (hasWebGL()) {
+      setWebgl(true);
+      // Same chunk next/dynamic loads below; resolving it here tells the bar the download is done.
+      import("@/components/yt/YtExperience").then(() => setProgress((p) => Math.max(p, 62)));
+    } else setLoaded(true);
     return startSmoothScroll();
   }, []);
+
+  useEffect(() => {
+    if (ready) setProgress(90);
+  }, [ready]);
 
   useEffect(() => {
     if (!ready) return;
@@ -63,17 +75,7 @@ export function YtSceneLayer() {
         <PlayMark className={`yt-poster transition-opacity duration-500 ${ready ? "opacity-0" : "opacity-100"}`} />
         {webgl && <YtExperience onReady={() => setReady(true)} onLost={() => setReady(false)} />}
       </div>
-      <div
-        role="status"
-        aria-label="Loading"
-        className={`loader fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-background transition-[opacity,visibility] duration-700 ease-out ${loaded ? "is-done invisible pointer-events-none opacity-0" : "opacity-100"}`}
-      >
-        <span className="absolute inset-x-0 top-0 h-[3px] overflow-hidden">
-          <span className="loader-bar block h-full bg-[#FF0033]" />
-        </span>
-        <PlayMark className="yt-loader-mark h-10 w-auto" />
-        <span className="text-xs font-medium uppercase tracking-[0.3em] text-muted">AIR · YouTube Channel Audit</span>
-      </div>
+      <YtLoader target={progress} done={loaded} />
     </>
   );
 }
