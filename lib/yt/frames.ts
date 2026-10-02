@@ -23,6 +23,10 @@ export type YtFrame = {
   link: number;
   /** Orbit rings with running lights and a slow pulse of rings around the button (the tools screen). */
   orbit: number;
+  /** Report screen: a score ring around the button draws itself up to the sample score. */
+  score: number;
+  /** Competitors screen: a radar behind the button sweeps over rival channels. */
+  radar: number;
 };
 
 /**
@@ -31,15 +35,15 @@ export type YtFrame = {
  */
 export type YtTrack = Partial<YtFrame>;
 
-const base = { fill: 1, tier: 0, glow: 1, idle: 1, scan: 0, link: 0, orbit: 0 };
+const base = { fill: 1, tier: 0, glow: 1, idle: 1, scan: 0, link: 0, orbit: 0, score: 0, radar: 0 };
 
 const hero: YtFrame = { ...base, x: 0.5, y: -0.02, scale: 0.36, rotX: 0.1, rotY: -0.42, rotZ: 0.04 };
 const problem: YtFrame = { ...base, x: -0.5, y: 0.02, scale: 0.36, rotX: 0.22, rotY: 0.62, rotZ: -0.16, fill: 0, glow: 0.15, idle: 0.6 };
 const scan: YtFrame = { ...base, x: 0, y: -0.1, scale: 0.28, rotX: 0.06, rotY: -0.78, rotZ: 0, fill: 0, glow: 0.4, idle: 0.5, scan: 1 };
-const report: YtFrame = { ...base, x: -0.55, y: 0.02, scale: 0.32, rotX: 0.12, rotY: 0.5, rotZ: -0.05 };
+const report: YtFrame = { ...base, x: -0.55, y: 0.02, scale: 0.32, rotX: 0.12, rotY: 0.5, rotZ: -0.05, score: 1 };
 /** Parked above the viewport, spun away; idle 0 so the canvas stops drawing while nothing is visible. */
 const away: YtFrame = { ...base, x: 0.15, y: 1.7, scale: 0.22, rotX: -0.4, rotY: 2.6, rotZ: 0.25, glow: 0, idle: 0 };
-const competitors: YtFrame = { ...base, x: -0.6, y: -0.02, scale: 0.24, rotX: 0.1, rotY: 0.7, rotZ: -0.08, glow: 0.7 };
+const competitors: YtFrame = { ...base, x: -0.6, y: -0.02, scale: 0.24, rotX: 0.1, rotY: 0.7, rotZ: -0.08, glow: 0.7, radar: 1 };
 const tools: YtFrame = { ...base, x: 0, y: -0.24, scale: 0.22, rotX: 0.08, rotY: 0, rotZ: 0, orbit: 1 };
 /** Faces the viewer like a plaque on a shelf; the metal changes while the section scrolls (see tracks). */
 const milestones: YtFrame = { ...base, x: 0.42, y: -0.04, scale: 0.36, rotX: 0.04, rotY: -0.22, rotZ: 0, glow: 0.5 };

@@ -8,6 +8,11 @@ const GAP = 28;
 /** Radius in px around the mouse within which dots part and light up. */
 const REACH = 150;
 const PUSH = 14;
+/** Alpha steps for the pre-built colour strings: 1/128 is finer than the eye can tell on a 1.4 px dot. */
+const LEVELS = 128;
+const shades = (rgb: string) => Array.from({ length: LEVELS + 1 }, (_, k) => `rgba(${rgb},${(k / LEVELS).toFixed(4)})`);
+const RED = shades("255,70,100");
+const BLUE = shades("190,205,255");
 
 /**
  * Backdrop dot grid that answers the mouse: dots part softly around the pointer and brighten, a wide soft light trails behind it,
@@ -29,6 +34,8 @@ export function YtDotField() {
     let off = new Float32Array(0);
     const mouse = { x: -9999, y: -9999, lx: -9999, ly: -9999, last: 0 };
     let raf = 0;
+    /** What the last frame drew for the button tint, so a scroll that does not change it does not redraw ~3,000 dots. */
+    const drawn = { bx: 0, by: 0, br: 0, redness: -1 };
 
     const resize = () => {
       dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -63,7 +70,12 @@ export function YtDotField() {
       const by = h / 2 - ytState.y * (h / 2);
       const br = Math.max(1, ytState.scale * h * 1.1);
       const redness = ytState.fill * ytState.glow * (1 - Math.min(1, ytState.tier));
+      drawn.bx = bx;
+      drawn.by = by;
+      drawn.br = br;
+      drawn.redness = redness;
       const t = now / 1000;
+      let style = "";
       const ox = (w % GAP) / 2;
       const oy = (h % GAP) / 2;
       let moving = false;
@@ -94,7 +106,9 @@ export function YtDotField() {
           const a = (0.07 + wave + near * near * 0.55) * edge + glow * 0.35;
           if (a < 0.01) continue;
           const size = 1.4 + near * 1.2;
-          ctx.fillStyle = glow > near ? `rgba(255,70,100,${a.toFixed(3)})` : `rgba(190,205,255,${a.toFixed(3)})`;
+          const k = Math.min(LEVELS, Math.round(a * LEVELS));
+          const next = glow > near ? RED[k] : BLUE[k];
+          if (next !== style) ctx.fillStyle = style = next;
           ctx.fillRect(x + off[i] - size / 2, y + off[i + 1] - size / 2, size, size);
         }
       }
@@ -102,6 +116,17 @@ export function YtDotField() {
       // Keep animating while the mouse was active recently, the dots are still settling or the light is catching up.
       const lagging = Math.abs(mouse.x - mouse.lx) + Math.abs(mouse.y - mouse.ly) > 0.5;
       if (!calm && (moving || lagging || now - mouse.last < 2500)) wake();
+    };
+
+    // Scrolling moves the button, so the red tint has to follow it; with no tint in view there is nothing to redraw.
+    const scrolled = () => {
+      const redness = ytState.fill * ytState.glow * (1 - Math.min(1, ytState.tier));
+      if (redness === 0 && drawn.redness === 0) return;
+      const bx = w / 2 + ytState.x * (w / 2) * columnShare(w);
+      const by = h / 2 - ytState.y * (h / 2);
+      const br = Math.max(1, ytState.scale * h * 1.1);
+      if (Math.abs(bx - drawn.bx) + Math.abs(by - drawn.by) + Math.abs(br - drawn.br) < 0.5 && Math.abs(redness - drawn.redness) < 0.005) return;
+      wake();
     };
 
     function wake() {
@@ -126,8 +151,7 @@ export function YtDotField() {
 
     resize();
     window.addEventListener("resize", resize);
-    // Scrolling moves the button, so the red tint has to follow it.
-    window.addEventListener("scroll", wake, { passive: true });
+    window.addEventListener("scroll", scrolled, { passive: true });
     if (!calm) {
       window.addEventListener("pointermove", move, { passive: true });
       document.addEventListener("pointerleave", leave);
@@ -135,7 +159,7 @@ export function YtDotField() {
     return () => {
       cancelAnimationFrame(raf);
       window.removeEventListener("resize", resize);
-      window.removeEventListener("scroll", wake);
+      window.removeEventListener("scroll", scrolled);
       window.removeEventListener("pointermove", move);
       document.removeEventListener("pointerleave", leave);
     };

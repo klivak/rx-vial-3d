@@ -200,13 +200,6 @@ export function buildPlayButton(quality: PlayButtonQuality): PlayButton {
 /** Front face z of the body, for placing effects (press ripple, scan line) right on the button. */
 export const PLAY_BUTTON_FRONT_Z = BODY_DEPTH / 2 + BODY_BEVEL;
 
-/** The flat silhouette of the body, for the colour-split ghosts of the glitch. */
-export function buildSilhouetteGeometry(): ShapeGeometry {
-  const g = new ShapeGeometry(bodyShape(), 24);
-  g.scale(UNIT, UNIT, UNIT);
-  return g;
-}
-
 /** A thin band along the button silhouette, used for the rings that run outwards when the button is pressed. */
 export function buildRippleGeometry(): ShapeGeometry {
   const shape = bodyShape();

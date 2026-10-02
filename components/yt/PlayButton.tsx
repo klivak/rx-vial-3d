@@ -6,11 +6,10 @@ import { AdditiveBlending, CanvasTexture, Color, Group, Mesh, MeshBasicMaterial,
 import { parallax, startParallax } from "@/lib/parallax";
 import { getQuality } from "@/lib/quality";
 import { buildPlayButton, buildRippleGeometry, PLAY_BUTTON_FRONT_Z } from "@/lib/yt/buildPlayButton";
-import { GlitchGhosts, OrbitRings } from "@/components/yt/ButtonFx";
+import { OrbitRings, PainWaves, Radar, ScoreRing } from "@/components/yt/ButtonFx";
 import { Sparkles } from "@/components/yt/Sparkles";
 import { AUDIT_URL } from "@/lib/yt/copy";
 import { applyFinish } from "@/lib/yt/finishes";
-import { glitchAt } from "@/lib/yt/glitch";
 import { buttonMaxHeight, columnShare } from "@/lib/yt/layout";
 import { ytIntro, ytPointer, ytState } from "@/lib/yt/state";
 
@@ -161,9 +160,7 @@ export function PlayButton() {
 
     // Frame scale is a share of the screen height, capped by the column width so narrow laptops get a smaller button.
     const size = Math.min(s.scale * vp.height, buttonMaxHeight(screen.width) * (vp.height / screen.height));
-    // Glitch burst (fired as pains light up): a small decaying sway, scaled to the button.
     const now = performance.now();
-    const glitch = glitchAt(now);
     // 0 until the loader lifts, then 1 over INTRO_MS: rise and spin first, the liquid follows, the ring marks the landing.
     const intro = ytIntro.at < 0 ? 0 : clamp01((now - ytIntro.at) / INTRO_MS);
     const arrive = easeOutCubic(clamp01(intro / 0.7));
@@ -173,7 +170,7 @@ export function PlayButton() {
       p.rippleAt = t;
     }
     root.current.position.set(
-      (s.x * vp.width * columnShare(screen.width)) / 2 + glitch.shiftX * size,
+      (s.x * vp.width * columnShare(screen.width)) / 2,
       (s.y * vp.height) / 2 + Math.sin(t * 0.9) * 0.025 * s.idle * size - (1 - arrive) * 0.45 * size,
       0,
     );
@@ -192,8 +189,7 @@ export function PlayButton() {
     const finish = applyFinish(button, s.tier);
     const triangleGlow = finish.triangleGlow;
     const fill = s.fill * pour * pour * (3 - 2 * pour);
-    // In a glitch the red surges up and drains again: the channel trying to come alive.
-    button.fill.uFill.value = fill + (1 - fill) * glitch.surge * 0.55;
+    button.fill.uFill.value = fill;
     button.fill.uTime.value = t;
     button.bodyMaterial.roughness += (1 - fill) * 0.3;
     triangleTint.copy(button.triangleMaterial.color);
@@ -241,7 +237,7 @@ export function PlayButton() {
     // Demand frameloop: keep drawing while anything is alive; otherwise the GPU rests until the next scroll update.
     const settling = Math.abs(parallax.x - smooth.x) + Math.abs(parallax.y - smooth.y) > 1e-3 || Math.abs(p.hoverTarget - p.hover) > 1e-3;
     const filling = fill > 0.001 && fill < 0.999;
-    if (intro < 1 || s.idle > 0 || s.scan > 0.01 || filling || glitch.strength > 0 || p.press > 0 || ringsLive || settling) invalidate();
+    if (intro < 1 || s.idle > 0 || s.scan > 0.01 || filling || p.press > 0 || ringsLive || settling) invalidate();
   });
 
   const over = (e: ThreeEvent<PointerEvent>) => {
@@ -279,10 +275,12 @@ export function PlayButton() {
         {platingLines.map((l, i) => (
           <primitive key={`plate-${i}`} object={l} />
         ))}
-        <GlitchGhosts />
         <Sparkles />
       </group>
       <OrbitRings />
+      <ScoreRing />
+      <Radar />
+      <PainWaves />
     </group>
   );
 }

@@ -10,12 +10,11 @@ export function applyYtFrame(frame: YtFrame) {
 /** Pointer interaction on the button itself: hover pushes it in, a click plays a press and sends out a ring. */
 export const ytPointer = { hover: 0, hoverTarget: 0, press: 0, rippleAt: -1 };
 
-/** One-shot effects fired from the page: a glitch burst when a pain lights up on "Sound familiar?" (performance.now() ms). */
-export const ytFx = { glitchAt: -1, glitchSeed: 0 };
+/** One-shot effects fired from the page: a heartbeat when a pain lights up on "Sound familiar?" (performance.now() ms). */
+export const ytFx = { beatAt: -1 };
 
-export function fireGlitch() {
-  ytFx.glitchAt = performance.now();
-  ytFx.glitchSeed = Math.random() * 1000;
+export function fireBeat() {
+  ytFx.beatAt = performance.now();
 }
 
 /** Hero entrance once the loader lifts: the button spins in, fills with red and sends out a ring (performance.now() ms; -1 until then). */

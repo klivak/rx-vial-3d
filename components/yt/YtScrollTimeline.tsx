@@ -11,9 +11,22 @@ import { applyYtFrame, ytState } from "@/lib/yt/state";
 gsap.registerPlugin(ScrollTrigger);
 
 let layer: HTMLElement | null = null;
+let layerH = 0;
 let awards: HTMLElement[] | null = null;
 let subs: HTMLElement | null = null;
-let lastSubs = "";
+/** Last value written per property, so a scroll frame that changes nothing writes nothing (each write restyles the element). */
+const written = new Map<string, string>();
+let lastTier = NaN;
+
+function put(el: HTMLElement, key: string, name: string, value: string) {
+  if (written.get(key) === value) return;
+  written.set(key, value);
+  el.style.setProperty(name, value);
+}
+
+function measureLayer() {
+  layerH = layer?.clientHeight || window.innerHeight;
+}
 
 /**
  * Mirrors the button state into CSS and the page: the glow follows the button and fades with its fill, `--yt-tier` lights the
@@ -22,20 +35,31 @@ let lastSubs = "";
 function syncCss() {
   const s = ytState;
   // Written on the elements that use them, not on <html>: a root variable change restyles the whole page on every scroll frame.
-  layer ??= document.getElementById("scene-layer");
+  if (!layer) {
+    layer = document.getElementById("scene-layer");
+    measureLayer();
+    window.addEventListener("resize", measureLayer);
+  }
   awards ??= Array.from(document.querySelectorAll<HTMLElement>("[data-award]"));
-  layer?.style.setProperty("--yt-x", `${(50 + s.x * 50 * columnShare(window.innerWidth)).toFixed(2)}%`);
-  layer?.style.setProperty("--yt-y", `${(50 - s.y * 50).toFixed(2)}%`);
-  layer?.style.setProperty("--yt-glow", s.glow.toFixed(3));
-  layer?.style.setProperty("--yt-health", s.fill.toFixed(3));
-  layer?.style.setProperty("--yt-tier", s.tier.toFixed(3));
-  layer?.style.setProperty("--yt-glow-c", glowColor(s.tier));
+  if (layer) {
+    // The glow moves in pixels with `translate`, so following the button is a compositor move, not a full-screen repaint.
+    const w = window.innerWidth;
+    put(layer, "gx", "--yt-gx", `${((0.5 + s.x * 0.5 * columnShare(w)) * w).toFixed(1)}px`);
+    put(layer, "gy", "--yt-gy", `${((0.5 - s.y * 0.5) * layerH).toFixed(1)}px`);
+    put(layer, "glow", "--yt-glow", s.glow.toFixed(3));
+    put(layer, "health", "--yt-health", s.fill.toFixed(3));
+    put(layer, "tier", "--yt-tier", s.tier.toFixed(3));
+    if (s.tier !== lastTier) put(layer, "glowc", "--yt-glow-c", glowColor(s.tier));
+  }
   // Award row i lights up as the metal passes from tier i to i + 1.
-  awards.forEach((el, i) => el.style.setProperty("--lit", Math.min(1, Math.max(0, s.tier - i)).toFixed(3)));
-  subs ??= document.querySelector("[data-subs]");
-  if (subs) {
-    const text = Math.round(Math.pow(10, 4 + s.tier)).toLocaleString("en-US");
-    if (text !== lastSubs) subs.textContent = lastSubs = text;
+  if (s.tier !== lastTier) {
+    awards.forEach((el, i) => put(el, `award${i}`, "--lit", Math.min(1, Math.max(0, s.tier - i)).toFixed(3)));
+    subs ??= document.querySelector("[data-subs]");
+    if (subs) {
+      const text = Math.round(Math.pow(10, 4 + s.tier)).toLocaleString("en-US");
+      if (subs.textContent !== text) subs.textContent = text;
+    }
+    lastTier = s.tier;
   }
 }
 

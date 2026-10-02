@@ -5,7 +5,7 @@
 export function SplitWords({ text }: { text: string }) {
   return text.split(" ").map((word, i) => (
     <span key={i} className="inline-block overflow-hidden pb-[0.08em] align-bottom">
-      <span data-word className="inline-block will-change-transform">
+      <span data-word className="inline-block">
         {word}
       </span>
       {" "}

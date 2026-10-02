@@ -6,8 +6,8 @@ html:has(.yt-page) {
   --muted: #a3abc2;
   --accent: #2e59e7;
   --yt-red: #ff0033;
-  --yt-x: 74%;
-  --yt-y: 52%;
+  --yt-gx: 74vw;
+  --yt-gy: 52lvh;
   --yt-glow: 1;
   --yt-health: 1;
   --yt-tier: 0;
@@ -28,12 +28,20 @@ html.lenis, html.lenis body { height: auto; }
     radial-gradient(50% 45% at 100% 100%, rgb(124 58 237 / 0.14), transparent 70%),
     var(--background);
 }
-/* The red light behind the button. It travels with the button and dims as the channel "loses health"; soft, never neon. */
-.yt-glow {
-  background:
-    radial-gradient(28vmax 22vmax at var(--yt-x) var(--yt-y), rgb(var(--yt-glow-c, 255 0 51) / calc(0.2 * var(--yt-glow))), transparent 70%),
-    radial-gradient(40vmax 30vmax at var(--yt-x) var(--yt-y), rgb(124 58 237 / calc((0.08 + 0.06 * (1 - var(--yt-health))) * (1 - min(var(--yt-tier, 0), 1)))), transparent 70%);
+/* The red light behind the button. It travels with the button and dims as the channel "loses health"; soft, never neon.
+   Two fixed-size gradients moved with `translate` and faded with `opacity`, so following the button never repaints the screen. */
+.yt-glow { overflow: hidden; }
+.yt-glow::before, .yt-glow::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  translate: calc(var(--yt-gx) - 50%) calc(var(--yt-gy) - 50%);
+  will-change: translate, opacity;
+  pointer-events: none;
 }
+.yt-glow::before { width: 56vmax; height: 44vmax; background: radial-gradient(closest-side, rgb(var(--yt-glow-c, 255 0 51) / 0.2), transparent 70%); opacity: var(--yt-glow); }
+.yt-glow::after { width: 80vmax; height: 60vmax; background: radial-gradient(closest-side, rgb(124 58 237), transparent 70%); opacity: calc((0.08 + 0.06 * (1 - var(--yt-health))) * (1 - min(var(--yt-tier), 1))); }
 
 /* No-WebGL poster and boot placeholder: the flat button where the 3D one will appear. */
 .yt-poster {
@@ -46,7 +54,7 @@ html.lenis, html.lenis body { height: auto; }
   filter: drop-shadow(0 30px 60px rgb(255 0 51 / 0.25));
 }
 @media (max-width: 767px) {
-  html:has(.yt-page) { --yt-x: 55%; --yt-y: 87%; }
+  html:has(.yt-page) { --yt-gx: 55vw; --yt-gy: 87lvh; }
   .yt-poster { left: 55%; top: 87%; height: 12vh; transform: translate(-50%, -50%); }
 }
 
@@ -124,9 +132,12 @@ html.lenis, html.lenis body { height: auto; }
   text-transform: uppercase;
   color: var(--muted);
 }
-@keyframes yt-live { 0%, 100% { box-shadow: 0 0 0 0 rgb(255 0 51 / 0.5); } 70% { box-shadow: 0 0 0 7px rgb(255 0 51 / 0); } }
-.yt-live-dot { width: 0.5rem; height: 0.5rem; border-radius: 9999px; background: var(--yt-red); animation: yt-live 2s ease-out infinite; }
-.yt-live-dot.is-dim { background: #8e93a3; animation: none; }
+/* The pulse is a ring scaled with transform/opacity (compositor only) rather than an animated box-shadow, which repaints every frame. */
+@keyframes yt-live { 0% { transform: scale(1); opacity: 0.5; } 70%, 100% { transform: scale(2.75); opacity: 0; } }
+.yt-live-dot { position: relative; width: 0.5rem; height: 0.5rem; border-radius: 9999px; background: var(--yt-red); }
+.yt-live-dot::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: rgb(255 0 51); opacity: 0; animation: yt-live 2s ease-out infinite; }
+.yt-live-dot.is-dim { background: #8e93a3; }
+.yt-live-dot.is-dim::after { animation: none; }
 
 .yt-glass {
   background: rgb(255 255 255 / 0.04);
@@ -329,7 +340,7 @@ html:not(.is-loading) .yt-chip[data-intro] { animation-name: yt-chip-in; animati
 @media (prefers-reduced-motion: reduce) {
   .yt-aurora::before, .yt-aurora::after, .yt-chip > span, .yt-now-pulse, html:not(.is-loading) .yt-hl { animation: none; }
   .yt-btn-primary::after { display: none; }
-  .yt-live-dot { animation: none; }
+  .yt-live-dot::after { animation: none; }
   .yt-btn-primary, .yt-btn-ghost, .yt-spot, .yt-thumb > div { transition: none; }
   .yt-spot { transform: none; }
   .yt-loader, .yt-loader-fade, .yt-feed { transition-duration: 0.2s; transition-delay: 0s; }

@@ -19,8 +19,13 @@ const SETTLE_MS = 500;
  */
 const BUTTON_IN_MS = 550;
 const TEXT_IN_MS = 950;
+/** The loader's exit is over by then (visibility flips at 1.7 s); unmounting stops its endless feed and wave animations. */
+const LOADER_GONE_MS = 2000;
 
-const YtExperience = dynamic(() => import("@/components/yt/YtExperience"), { ssr: false });
+const loadExperience = () => import("@/components/yt/YtExperience");
+// Start fetching the 3D chunk (three.js, fiber) as soon as this module runs in the browser, not after hydration and the first effect.
+const experienceChunk = typeof window !== "undefined" ? loadExperience() : null;
+const YtExperience = dynamic(loadExperience, { ssr: false });
 
 function hasWebGL() {
   try {
@@ -39,6 +44,7 @@ export function YtSceneLayer() {
   const [webgl, setWebgl] = useState(false);
   const [ready, setReady] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [loaderGone, setLoaderGone] = useState(false);
   // Real milestones for the loader bar: page hydrated, 3D code downloaded, first frame drawn.
   const [progress, setProgress] = useState(0);
 
@@ -49,7 +55,7 @@ export function YtSceneLayer() {
     if (hasWebGL()) {
       setWebgl(true);
       // Same chunk next/dynamic loads below; resolving it here tells the bar the download is done.
-      import("@/components/yt/YtExperience").then(() => setProgress((p) => Math.max(p, 62)));
+      (experienceChunk ?? loadExperience()).then(() => setProgress((p) => Math.max(p, 62)));
     } else setLoaded(true);
     return startSmoothScroll();
   }, []);
@@ -77,7 +83,11 @@ export function YtSceneLayer() {
       document.documentElement.classList.remove("is-loading");
       unlockScroll();
     }, still ? 0 : TEXT_IN_MS);
-    return () => clearTimeout(timer);
+    const gone = setTimeout(() => setLoaderGone(true), LOADER_GONE_MS);
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(gone);
+    };
   }, [loaded]);
 
   return (
@@ -89,10 +99,10 @@ export function YtSceneLayer() {
         <YtDotField />
         <div className="yt-glow absolute inset-0" />
         <PlayMark className={`yt-poster transition-opacity duration-500 ${ready ? "opacity-0" : "opacity-100"}`} />
-        {webgl && <YtExperience onReady={() => setReady(true)} onLost={() => setReady(false)} />}
+        {webgl && <YtExperience onReady={() => setReady(true)} onLost={() => setReady(false)} open={loaded} />}
         <div className="yt-grain pointer-events-none absolute inset-0" />
       </div>
-      <YtLoader target={progress} done={loaded} />
+      {!loaderGone && <YtLoader target={progress} done={loaded} />}
     </>
   );
 }

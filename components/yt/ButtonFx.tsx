@@ -5,61 +5,28 @@ import { useEffect, useMemo } from "react";
 import {
   AdditiveBlending,
   BufferGeometry,
+  Color,
+  DoubleSide,
   EllipseCurve,
+  Float32BufferAttribute,
   Group,
   LineBasicMaterial,
   LineLoop,
   Mesh,
   MeshBasicMaterial,
+  PlaneGeometry,
+  RingGeometry,
+  ShaderMaterial,
   SphereGeometry,
+  Vector2,
   Vector3,
 } from "three";
-import { buildSilhouetteGeometry, PLAY_BUTTON_FRONT_Z } from "@/lib/yt/buildPlayButton";
-import { glitchAt } from "@/lib/yt/glitch";
+import { ytCopy } from "@/lib/yt/copy";
+import { beatAt } from "@/lib/yt/heartbeat";
 import { ytState } from "@/lib/yt/state";
 
-/**
- * Colour-split ghosts for the glitch: a red and a cyan copy of the silhouette, added on top of the button and pulled apart
- * sideways for a few frames whenever a pain lights up on "Sound familiar?". Lives inside the button's tilt group.
- */
-export function GlitchGhosts() {
-  const ghosts = useMemo(() => {
-    const geometry = buildSilhouetteGeometry();
-    return ["#FF1744", "#00E5FF"].map((color) => {
-      const m = new Mesh(geometry, new MeshBasicMaterial({ color, transparent: true, opacity: 0, depthWrite: false, blending: AdditiveBlending }));
-      m.position.z = PLAY_BUTTON_FRONT_Z + 0.02;
-      m.visible = false;
-      return m;
-    });
-  }, []);
-
-  useEffect(
-    () => () => {
-      ghosts[0].geometry.dispose();
-      ghosts.forEach((g) => (g.material as MeshBasicMaterial).dispose());
-    },
-    [ghosts],
-  );
-
-  useFrame(() => {
-    const g = glitchAt(performance.now());
-    ghosts.forEach((ghost, i) => {
-      ghost.visible = g.split > 0;
-      if (!ghost.visible) return;
-      ghost.position.x = (i === 0 ? -1 : 1) * g.split;
-      ghost.position.y = (i === 0 ? 1 : -1) * g.split * 0.25;
-      (ghost.material as MeshBasicMaterial).opacity = 0.22 * g.strength;
-    });
-  });
-
-  return (
-    <>
-      {ghosts.map((g, i) => (
-        <primitive key={i} object={g} />
-      ))}
-    </>
-  );
-}
+/** Reused every frame for the light's position on its orbit. */
+const point = new Vector2();
 
 const RINGS = [
   { rx: 1.25, ry: 1.25, tiltX: -1.18, tiltZ: 0.32, speed: 0.55, color: "#6E8BFF" },
@@ -116,7 +83,7 @@ export function OrbitRings() {
       r.group.visible = amount > 0.01;
       if (!r.group.visible) return;
       (r.line.material as LineBasicMaterial).opacity = 0.35 * amount;
-      const p = r.curve.getPoint((((t * r.speed) / (Math.PI * 2) + i * 0.5) % 1 + 1) % 1);
+      const p = r.curve.getPoint((((t * r.speed) / (Math.PI * 2) + i * 0.5) % 1 + 1) % 1, point);
       r.light.position.set(p.x, p.y, 0);
       r.halo.position.copy(r.light.position);
       (r.light.material as MeshBasicMaterial).opacity = amount;
@@ -131,4 +98,261 @@ export function OrbitRings() {
       ))}
     </>
   );
+}
+
+const SCORE_R = 0.98;
+const SCORE_W = 0.045;
+const SCORE_SEGMENTS = 160;
+const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
+
+/**
+ * Report screen: the sample report's score ring, drawn around the button. A faint full track, and an arc in the report's blue to
+ * violet that runs clockwise from the top up to the sample score as the button arrives, with a glowing head at its tip.
+ * Lives in the button's root group, so it stays flat to the viewer while the button turns.
+ */
+export function ScoreRing() {
+  const parts = useMemo(() => {
+    const track = new Mesh(
+      new RingGeometry(SCORE_R - SCORE_W / 2, SCORE_R + SCORE_W / 2, 96),
+      new MeshBasicMaterial({ color: "#8FA8FF", transparent: true, opacity: 0, depthWrite: false, blending: AdditiveBlending }),
+    );
+    // Starts at the top; mirrored on x so it runs clockwise, like the ring in the report card.
+    const arcGeometry = new RingGeometry(SCORE_R - SCORE_W / 2, SCORE_R + SCORE_W / 2, SCORE_SEGMENTS, 1, Math.PI / 2, Math.PI * 2);
+    const from = new Color("#2E59E7");
+    const to = new Color("#7C3AED");
+    const c = new Color();
+    const colors: number[] = [];
+    const pos = arcGeometry.getAttribute("position");
+    for (let i = 0; i < pos.count; i++) {
+      // Clockwise angle from the top once mirrored, 0..1, for the gradient.
+      const a = (Math.atan2(-pos.getX(i), pos.getY(i)) / (Math.PI * 2) + 1) % 1;
+      c.copy(from).lerp(to, a);
+      colors.push(c.r, c.g, c.b);
+    }
+    arcGeometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
+    const arc = new Mesh(
+      arcGeometry,
+      new MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0, depthWrite: false, side: DoubleSide, blending: AdditiveBlending }),
+    );
+    arc.scale.x = -1;
+    const head = new Mesh(
+      new SphereGeometry(0.05, 12, 12),
+      new MeshBasicMaterial({ color: "#FFFFFF", transparent: true, opacity: 0, depthWrite: false, blending: AdditiveBlending }),
+    );
+    const halo = new Mesh(
+      new SphereGeometry(0.1, 12, 12),
+      new MeshBasicMaterial({ color: "#7C3AED", transparent: true, opacity: 0, depthWrite: false, blending: AdditiveBlending }),
+    );
+    const group = new Group();
+    group.add(track, arc, halo, head);
+    return { group, track, arc, head, halo };
+  }, []);
+
+  useEffect(
+    () => () =>
+      [parts.track, parts.arc, parts.head, parts.halo].forEach((m) => {
+        m.geometry.dispose();
+        (m.material as MeshBasicMaterial).dispose();
+      }),
+    [parts],
+  );
+
+  useFrame(({ clock }) => {
+    const amount = ytState.score;
+    parts.group.visible = amount > 0.01;
+    if (!parts.group.visible) return;
+    const fade = Math.min(1, amount * 3);
+    const progress = (ytCopy.report.score / 100) * easeOutCubic(amount);
+    parts.arc.geometry.setDrawRange(0, 6 * Math.round(progress * SCORE_SEGMENTS));
+    (parts.track.material as MeshBasicMaterial).opacity = 0.1 * fade;
+    (parts.arc.material as MeshBasicMaterial).opacity = 0.95 * fade;
+    const a = progress * Math.PI * 2;
+    parts.head.position.set(Math.sin(a) * SCORE_R, Math.cos(a) * SCORE_R, 0.01);
+    parts.halo.position.copy(parts.head.position);
+    // The head breathes slowly once the ring has drawn, so the score feels live.
+    const breath = 0.75 + 0.25 * Math.sin(clock.elapsedTime * 2.2);
+    (parts.head.material as MeshBasicMaterial).opacity = fade;
+    (parts.halo.material as MeshBasicMaterial).opacity = 0.45 * fade * breath;
+    parts.halo.scale.setScalar(0.85 + 0.3 * breath);
+  });
+
+  return <primitive object={parts.group} />;
+}
+
+const RADAR_R = 1.75;
+
+/** Rival channels on the radar: position in the radar's -1..1 square and size. */
+const BLIPS = [
+  [0.62, 0.38, 1],
+  [-0.48, 0.66, 0.8],
+  [-0.78, -0.22, 1.1],
+  [0.3, -0.74, 0.9],
+  [0.86, -0.3, 0.7],
+  [-0.12, 0.9, 0.75],
+];
+
+const RADAR_VERTEX = /* glsl */ `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const RADAR_FRAGMENT = /* glsl */ `
+  #define TAU 6.28318530718
+  uniform float uTime;
+  uniform float uAmount;
+  uniform vec3 uColor;
+  uniform vec3 uBlips[${BLIPS.length}];
+  varying vec2 vUv;
+  void main() {
+    vec2 p = vUv * 2.0 - 1.0;
+    float r = length(p);
+    if (r > 1.0) discard;
+    float edge = 1.0 - smoothstep(0.8, 1.0, r);
+    // Clockwise sweep; behind = how far (in radians) the beam has moved past this point.
+    float sweep = -uTime * 1.1;
+    float behind = mod(atan(p.y, p.x) - sweep, TAU);
+    float trail = exp(-behind * 2.0) * smoothstep(0.2, 0.45, r) * edge;
+    float beam = smoothstep(0.045, 0.0, behind) * smoothstep(0.2, 0.5, r) * edge;
+    float rings = 0.0;
+    for (int i = 1; i <= 3; i++) rings += smoothstep(0.009, 0.0, abs(r - 0.4 - float(i) * 0.19));
+    rings *= edge;
+    // Rivals flash as the beam crosses them and fade until the next pass.
+    float blips = 0.0;
+    for (int i = 0; i < ${BLIPS.length}; i++) {
+      vec3 b = uBlips[i];
+      float d = length(p - b.xy);
+      float lit = exp(-mod(atan(b.y, b.x) - sweep, TAU) * 1.3);
+      blips += smoothstep(0.035 * b.z, 0.0, d) * (0.35 + 0.65 * lit) + smoothstep(0.13 * b.z, 0.0, d) * lit * 0.5;
+    }
+    float glow = rings * 0.45 + trail * 0.4 + beam * 0.9;
+    vec3 color = uColor * glow + mix(uColor, vec3(1.0), 0.6) * blips;
+    gl_FragColor = vec4(color, max(glow, blips) * uAmount);
+  }
+`;
+
+/**
+ * Competitors screen: a radar behind the button. Faint range rings, a beam sweeping clockwise with a fading trail, and a few
+ * rival channels that flash as the beam passes, so the button reads as "you" in the middle of your niche. One shader quad.
+ */
+export function Radar() {
+  const mesh = useMemo(() => {
+    const material = new ShaderMaterial({
+      vertexShader: RADAR_VERTEX,
+      fragmentShader: RADAR_FRAGMENT,
+      uniforms: {
+        uTime: { value: 0 },
+        uAmount: { value: 0 },
+        uColor: { value: new Color("#8FA8FF") },
+        uBlips: { value: BLIPS.map(([x, y, z]) => new Vector3(x, y, z)) },
+      },
+      transparent: true,
+      depthWrite: false,
+      blending: AdditiveBlending,
+    });
+    const m = new Mesh(new PlaneGeometry(RADAR_R * 2, RADAR_R * 2), material);
+    m.position.z = -0.35;
+    m.visible = false;
+    return m;
+  }, []);
+
+  useEffect(
+    () => () => {
+      mesh.geometry.dispose();
+      (mesh.material as ShaderMaterial).dispose();
+    },
+    [mesh],
+  );
+
+  useFrame(({ clock }) => {
+    const amount = ytState.radar;
+    mesh.visible = amount > 0.01;
+    if (!mesh.visible) return;
+    const u = (mesh.material as ShaderMaterial).uniforms;
+    u.uTime.value = clock.elapsedTime;
+    u.uAmount.value = amount;
+  });
+
+  return <primitive object={mesh} />;
+}
+
+const WAVES_SIZE = 4.4;
+
+const WAVES_FRAGMENT = /* glsl */ `
+  uniform float uAge;
+  uniform vec3 uColor;
+  varying vec2 vUv;
+  // Distance to the button's silhouette: a rounded box the size of the body (half extents in button units).
+  float silhouette(vec2 p) {
+    vec2 q = abs(p) - vec2(0.714, 0.5) + 0.2;
+    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - 0.2;
+  }
+  // One wave of the beat: a contour that runs out from the edge, breaks into arcs and fades.
+  float wave(float d, float a, float start, float seed) {
+    float w = (uAge - start) / 0.7;
+    if (w <= 0.0 || w >= 1.0) return 0.0;
+    float front = 0.03 + (1.0 - pow(1.0 - w, 3.0)) * 1.25;
+    float width = 0.018 + 0.05 * w;
+    float line = exp(-pow((d - front) / width, 2.0));
+    float wake = smoothstep(front, 0.0, d) * exp(-d * 2.5) * 0.18;
+    float arcs = 0.5 + 0.5 * (0.6 * sin(a * 5.0 + seed) + 0.4 * sin(a * 11.0 - seed * 1.7));
+    float broken = mix(1.0, smoothstep(0.3, 0.6, arcs), w);
+    return (line * broken + wake) * pow(1.0 - w, 2.0);
+  }
+  void main() {
+    vec2 p = (vUv - 0.5) * ${WAVES_SIZE.toFixed(2)};
+    float d = silhouette(p);
+    if (d < 0.0) discard;
+    float a = atan(p.y, p.x);
+    // "Lub-dub": a strong wave and a weaker one right behind it.
+    float waves = wave(d, a, 0.0, 1.3) + 0.55 * wave(d, a, 0.17, 4.1);
+    // A brief red glow hugs the edge with each beat, with a few short rays torn out of it.
+    float flash = exp(-uAge * 6.0) + 0.5 * exp(-max(uAge - 0.17, 0.0) * 8.0) * step(0.17, uAge);
+    float rays = pow(0.5 + 0.5 * sin(a * 9.0 + 2.0) * sin(a * 4.0 - 1.0), 6.0);
+    float glow = flash * (exp(-d * 9.0) * 0.55 + rays * exp(-d * 3.5) * 0.35);
+    float v = waves + glow;
+    vec3 color = mix(uColor, vec3(1.0, 0.85, 0.88), clamp(waves - 0.6, 0.0, 1.0));
+    gl_FragColor = vec4(color * v, v);
+  }
+`;
+
+/**
+ * Pains screen: each pain that lights up sends a weak heartbeat out of the grey button. The button itself stays still; around it a
+ * red contour runs out from the edge twice ("lub-dub"), breaking into arcs as it fades, with a short red glow on the rim. One shader quad.
+ */
+export function PainWaves() {
+  const mesh = useMemo(() => {
+    const material = new ShaderMaterial({
+      vertexShader: RADAR_VERTEX,
+      fragmentShader: WAVES_FRAGMENT,
+      uniforms: { uAge: { value: 0 }, uColor: { value: new Color("#FF2A4F") } },
+      transparent: true,
+      depthWrite: false,
+      blending: AdditiveBlending,
+    });
+    const m = new Mesh(new PlaneGeometry(WAVES_SIZE, WAVES_SIZE), material);
+    m.position.z = -0.2;
+    m.visible = false;
+    return m;
+  }, []);
+
+  useEffect(
+    () => () => {
+      mesh.geometry.dispose();
+      (mesh.material as ShaderMaterial).dispose();
+    },
+    [mesh],
+  );
+
+  useFrame(({ invalidate }) => {
+    const age = beatAt(performance.now());
+    mesh.visible = age >= 0;
+    if (!mesh.visible) return;
+    (mesh.material as ShaderMaterial).uniforms.uAge.value = age;
+    invalidate();
+  });
+
+  return <primitive object={mesh} />;
 }

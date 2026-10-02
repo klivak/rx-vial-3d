@@ -3,7 +3,7 @@
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect } from "react";
-import { fireGlitch } from "@/lib/yt/state";
+import { fireBeat } from "@/lib/yt/state";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -17,7 +17,7 @@ function reveals() {
     const items = section.querySelectorAll("[data-reveal]");
     const tl = gsap.timeline({ scrollTrigger: { trigger: section, start: "top 55%", toggleActions: "play none none reverse" } });
     if (words.length) tl.from(words, { yPercent: 115, rotate: 3, duration: 0.9, ease: "power4.out", stagger: 0.045 });
-    if (items.length) tl.from(items, { opacity: 0, y: 26, filter: "blur(6px)", duration: 0.9, ease: "power3.out", stagger: 0.08 }, words.length ? "-=0.6" : 0);
+    if (items.length) tl.from(items, { opacity: 0, y: 26, filter: "blur(6px)", duration: 0.9, ease: "power3.out", stagger: 0.08, clearProps: "filter" }, words.length ? "-=0.6" : 0);
   });
 }
 
@@ -25,13 +25,10 @@ function reveals() {
 function heroFade() {
   const layer = document.querySelector("[data-hero-fade]");
   if (!layer) return;
-  gsap.to(layer, {
-    opacity: 0,
-    y: -60,
-    filter: "blur(8px)",
-    ease: "none",
-    scrollTrigger: { trigger: layer, start: "top top", end: "+=40%", scrub: 0.5 },
-  });
+  const tl = gsap.timeline({ scrollTrigger: { trigger: layer, start: "top top", end: "+=40%", scrub: 0.5 } });
+  tl.to(layer, { opacity: 0, y: -60, ease: "none" }, 0);
+  // The blur goes on the chip cards only: blurring the whole hero-sized layer re-filtered a full screen on every scroll frame.
+  tl.to(layer.querySelectorAll("[data-chips] > li > span"), { filter: "blur(8px)", ease: "none" }, 0);
 }
 
 /** `[data-draw]` paths draw themselves with the scroll; `[data-light]` items light up in turn while their group crosses the screen. */
@@ -58,10 +55,10 @@ function scrubbedLines(desktop: boolean) {
   });
 }
 
-/** Screen 2: each pain that lights up hits the grey button with a short glitch, so the problems land on the channel one by one. */
-function painGlitches() {
+/** Screen 2: each pain that lights up sends a weak heartbeat through the grey button, so the problems land on the channel one by one. */
+function painBeats() {
   q("#problem [data-light]").forEach((pain) =>
-    ScrollTrigger.create({ trigger: pain, start: "top 64%", onEnter: fireGlitch, onEnterBack: fireGlitch }),
+    ScrollTrigger.create({ trigger: pain, start: "top 64%", onEnter: fireBeat, onEnterBack: fireBeat }),
   );
 }
 
@@ -164,6 +161,8 @@ function orbit(drift: boolean) {
   if (!section) return () => {};
   const items = q("[data-orbit-item]", section);
   const state = { turn: 0, drift: 0, active: false };
+  // Only restack when a card actually changes depth band: a z-index write every frame restacked nine frosted cards per tick.
+  const z: string[] = [];
   const place = () => {
     const rx = Math.min(innerWidth * 0.38, 600);
     const ry = Math.min(innerHeight * 0.2, 200);
@@ -173,7 +172,8 @@ function orbit(drift: boolean) {
       el.style.transform = `translate(-50%, -50%) translate(${(Math.cos(a) * rx).toFixed(1)}px, ${(Math.sin(a) * ry).toFixed(1)}px) scale(${(0.78 + 0.22 * depth).toFixed(3)})`;
       // Cards at the back fade well down so they read as behind the button, not on top of the heading.
       el.style.opacity = (0.2 + 0.8 * depth * depth).toFixed(3);
-      el.style.zIndex = String(Math.round(depth * 10));
+      const zi = String(Math.round(depth * 10));
+      if (z[i] !== zi) el.style.zIndex = z[i] = zi;
     });
   };
   gsap.to(state, {
@@ -283,7 +283,7 @@ export function YtMotion() {
       if (motion) {
         reveals();
         heroFade();
-        painGlitches();
+        painBeats();
         scrubbedLines(desktop);
         scan(desktop);
         report();

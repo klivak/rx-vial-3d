@@ -49,6 +49,7 @@ export function YtLoader({ target, done }: { target: number; done: boolean }) {
     const tri = q<SVGPathElement>("[data-l-tri]");
     const bar = q<HTMLElement>("[data-l-bar]");
     const knob = q<HTMLElement>("[data-l-knob]");
+    const trackW = knob.parentElement!.clientWidth;
     const pct = q<HTMLElement>("[data-l-pct]");
     const step = q<HTMLElement>("[data-l-step]");
     const steps = ytCopy.loader.steps;
@@ -73,7 +74,8 @@ export function YtLoader({ target, done }: { target: number; done: boolean }) {
       tri.style.transform = `scale(${0.3 + 0.7 * (1 - Math.pow(1 - tp, 3))})`;
       tri.style.opacity = String(tp);
       bar.style.transform = `scaleX(${p})`;
-      knob.style.left = `${p * 100}%`;
+      // A transform on top of the centring `translate` utilities: moving `left` re-ran layout every frame.
+      knob.style.transform = `translateX(${(p * trackW).toFixed(1)}px)`;
       pct.textContent = String(Math.round(p * 100));
       const next = p >= 1 ? steps[3] : steps[Math.min(2, Math.floor(p * 3))];
       if (step.textContent !== next) {
