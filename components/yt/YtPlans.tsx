@@ -57,6 +57,7 @@ export function YtPlans() {
                 </ul>
                 <a
                   href={AUDIT_URL}
+                  data-magnetic
                   className={`mt-8 rounded-full px-5 py-3 text-center text-sm font-medium ${featured ? "yt-btn-primary" : "yt-btn-ghost"}`}
                 >
                   {tier.price ? c.cta : c.priceCta}

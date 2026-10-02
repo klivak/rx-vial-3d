@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { PlayMark } from "@/components/yt/PlayMark";
+import { YtDotField } from "@/components/yt/YtDotField";
 import { YtLoader } from "@/components/yt/YtLoader";
 import { startSmoothScroll, unlockScroll } from "@/lib/yt/smoothScroll";
 
@@ -71,10 +72,12 @@ export function YtSceneLayer() {
       {/* Sized to the largest viewport (lvh): the phone address bar showing or hiding must not resize the canvas and jolt the button. */}
       <div id="scene-layer" className="fixed inset-x-0 top-0 z-0 h-lvh" aria-hidden="true">
         <div className="yt-backdrop absolute inset-0" />
-        <div className="yt-grid absolute inset-0" />
+        <div className="yt-aurora absolute inset-0 overflow-hidden" />
+        <YtDotField />
         <div className="yt-glow absolute inset-0" />
         <PlayMark className={`yt-poster transition-opacity duration-500 ${ready ? "opacity-0" : "opacity-100"}`} />
         {webgl && <YtExperience onReady={() => setReady(true)} onLost={() => setReady(false)} />}
+        <div className="yt-grain pointer-events-none absolute inset-0" />
       </div>
       <YtLoader target={progress} done={loaded} />
     </>

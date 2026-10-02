@@ -22,6 +22,13 @@ export const ytCopy = {
     secondary: "See what’s inside",
     note: "Free. No card. Ready in up to 5 minutes.",
     hint: "Press the button",
+    /** The word in the headline that gets the red highlight. */
+    highlight: "views",
+    chips: [
+      { value: "0–100", label: "Channel score" },
+      { value: "35+", label: "Independent checks" },
+      { value: "1", label: "Main bottleneck, named" },
+    ],
   },
 
   problem: {
@@ -35,7 +42,13 @@ export const ytCopy = {
       { title: "Viewers drop off early", text: "The first seconds lose people before the video starts." },
       { title: "Not sure what to fix first", text: "Thumbnails? Titles? Shorts? Everything feels urgent." },
     ],
-    chart: { label: "Views, last 12 months", aria: "Illustration: a views chart that climbs, then flattens and slips down." },
+    chart: {
+      tabs: ["Views", "Watch time", "Subscribers"],
+      label: "Last 12 months · illustration",
+      peak: "Peak",
+      now: "Now",
+      aria: "Illustration: a views chart that climbs, peaks in summer, then slips down to now.",
+    },
   },
 
   scan: {
@@ -87,6 +100,21 @@ export const ytCopy = {
     best: "Best performers",
     weak: "Weakest",
     note: "Illustration. Your report uses your own videos.",
+  },
+
+  competitors: {
+    eyebrow: "Competitors",
+    title: "See where you stand in your niche.",
+    lead: "The audit finds similar channels with AI or uses the ones you name, and shows how your videos differ from theirs.",
+    you: "You",
+    names: ["Competitor A", "Competitor B", "Competitor C"],
+    metrics: [
+      { label: "Average views per video", values: [18, 42, 27, 9], format: "K" },
+      { label: "Uploads per month", values: [4, 8, 6, 3], format: "" },
+      { label: "Engagement rate", values: [6.1, 4.2, 5.0, 3.3], format: "%" },
+    ],
+    insight: "They upload twice as often and win on packaging. You win on engagement: the audience you have is loyal.",
+    note: "Illustration. Your report compares your real channel with up to 3 competitors.",
   },
 
   plans: {
@@ -146,6 +174,19 @@ export const ytCopy = {
       { name: "Metadata Translation", text: "Translate titles and descriptions and publish in one click." },
       { name: "Video Distribution", text: "Publish beyond YouTube: MSN, Facebook, Tubi and more." },
     ],
+  },
+
+  milestones: {
+    eyebrow: "The long game",
+    title: "Every Play Button starts with one fix.",
+    lead: "Silver at 100K subscribers, Gold at 1M, Diamond at 10M. The audit won’t upload for you, but it shows what to fix on the way there.",
+    counter: "subscribers",
+    awards: [
+      { name: "Silver Creator Award", at: "100,000 subscribers" },
+      { name: "Gold Creator Award", at: "1,000,000 subscribers" },
+      { name: "Diamond Creator Award", at: "10,000,000 subscribers" },
+    ],
+    note: "Creator Awards are given by YouTube. Illustration.",
   },
 
   cta: {

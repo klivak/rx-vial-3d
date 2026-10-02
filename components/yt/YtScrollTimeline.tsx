@@ -4,45 +4,106 @@ import { useThree } from "@react-three/fiber";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect } from "react";
-import { ytFrames, type YtFrame } from "@/lib/yt/frames";
+import { ytFrames, ytTracks, type YtFrame } from "@/lib/yt/frames";
+import { columnShare } from "@/lib/yt/layout";
 import { applyYtFrame, ytState } from "@/lib/yt/state";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const root = typeof document === "undefined" ? null : document.documentElement;
-
-/** Mirrors the button state into CSS: the glow behind the canvas follows the button and fades with its health. */
-function syncCss() {
-  const s = ytState;
-  root?.style.setProperty("--yt-x", `${(50 + s.x * 50).toFixed(2)}%`);
-  root?.style.setProperty("--yt-y", `${(50 - s.y * 50).toFixed(2)}%`);
-  root?.style.setProperty("--yt-glow", s.glow.toFixed(3));
-  root?.style.setProperty("--yt-health", s.health.toFixed(3));
-}
+let layer: HTMLElement | null = null;
+let awards: HTMLElement[] | null = null;
+let subs: HTMLElement | null = null;
+let lastSubs = "";
 
 /**
- * One scrubbed tween per screen: the move into frame i runs while section i rises from the bottom of the viewport to 30% from the
- * top, so screens of any height work and the rest of the section is a still plateau for reading.
+ * Mirrors the button state into CSS and the page: the glow follows the button and fades with its fill, `--yt-tier` lights the
+ * milestone cards, and the subscriber counter follows the metal (10K at red, 100K silver, 1M gold, 10M diamond).
  */
-function buildScrub(list: YtFrame[], invalidate: () => void) {
-  applyYtFrame(list[0]);
-  const onUpdate = () => {
-    syncCss();
-    invalidate();
-  };
-  gsap.utils.toArray<HTMLElement>("[data-yt-frame]").forEach((section, i) => {
-    if (i === 0 || !list[i]) return;
-    const { health: fromHealth, glow: fromGlow, ...fromMove } = list[i - 1];
-    const { health, glow, ...move } = list[i];
-    // Lenis already smooths the wheel, so a short scrub is enough to take the edge off touch flings.
-    const tl = gsap.timeline({ scrollTrigger: { trigger: section, start: "top bottom", end: "top 30%", scrub: 0.6 }, onUpdate });
-    tl.fromTo(ytState, fromMove, { ...move, duration: 1, ease: "power2.inOut", immediateRender: false });
-    // Colour drains a little behind the motion, so the button turns first and then "goes grey".
-    tl.fromTo(ytState, { health: fromHealth, glow: fromGlow }, { health, glow, duration: 0.7, ease: "power1.inOut", immediateRender: false }, 0.3);
-  });
+function syncCss() {
+  const s = ytState;
+  // Written on the elements that use them, not on <html>: a root variable change restyles the whole page on every scroll frame.
+  layer ??= document.getElementById("scene-layer");
+  awards ??= Array.from(document.querySelectorAll<HTMLElement>("[data-award]"));
+  layer?.style.setProperty("--yt-x", `${(50 + s.x * 50 * columnShare(window.innerWidth)).toFixed(2)}%`);
+  layer?.style.setProperty("--yt-y", `${(50 - s.y * 50).toFixed(2)}%`);
+  layer?.style.setProperty("--yt-glow", s.glow.toFixed(3));
+  layer?.style.setProperty("--yt-health", s.fill.toFixed(3));
+  layer?.style.setProperty("--yt-tier", s.tier.toFixed(3));
+  // Award row i lights up as the metal passes from tier i to i + 1.
+  awards.forEach((el, i) => el.style.setProperty("--lit", Math.min(1, Math.max(0, s.tier - i)).toFixed(3)));
+  subs ??= document.querySelector("[data-subs]");
+  if (subs) {
+    const text = Math.round(Math.pow(10, 4 + s.tier)).toLocaleString("en-US");
+    if (text !== lastSubs) subs.textContent = lastSubs = text;
+  }
 }
 
-/** Reduced motion: the button does not travel; each screen cuts to its final pose behind a short canvas fade. */
+/** Frame i with its in-section track applied: where the button is when the visitor leaves screen i. */
+const settled = (list: YtFrame[], i: number): YtFrame => ({ ...list[i], ...ytTracks[i] });
+
+/**
+ * One scrubbed timeline over the whole page, so a single playhead owns the button: separate scrubbed tweens per screen could
+ * both be catching up after a fast scroll and write the same numbers in one frame, which made the button twitch.
+ * The move into frame i runs while section i rises from the bottom of the viewport to 30% from the top; a section's track then
+ * plays while the rest of it scrolls by. Positions come from the layout, so the timeline is rebuilt on every refresh.
+ */
+function buildScrub(list: YtFrame[], invalidate: () => void) {
+  let tl: gsap.core.Timeline | null = null;
+  const build = () => {
+    const progress = tl?.progress() ?? 0;
+    tl?.scrollTrigger?.kill();
+    tl?.kill();
+    const max = Math.max(1, ScrollTrigger.maxScroll(window));
+    const vh = window.innerHeight;
+    const at = (y: number) => Math.min(1, Math.max(0, y / max));
+    tl = gsap.timeline({
+      // Lenis already smooths the wheel, so a short scrub is enough to take the edge off touch flings.
+      scrollTrigger: { start: 0, end: () => ScrollTrigger.maxScroll(window), scrub: 0.6 },
+      onUpdate: () => {
+        syncCss();
+        invalidate();
+      },
+    });
+    // The timeline spans exactly 0..1 of the scroll range.
+    tl.to({}, { duration: 1 }, 0);
+    gsap.utils.toArray<HTMLElement>("[data-yt-frame]").forEach((section, i) => {
+      if (!list[i]) return;
+      const top = section.getBoundingClientRect().top + window.scrollY;
+      const arrive = at(top - vh * 0.3);
+      if (i > 0) {
+        const start = at(top - vh);
+        const span = Math.max(0.0005, arrive - start);
+        const { fill: fromFill, glow: fromGlow, tier: fromTier, ...fromMove } = settled(list, i - 1);
+        const { fill, glow, tier, ...move } = list[i];
+        tl!.fromTo(ytState, fromMove, { ...move, duration: span, ease: "power2.inOut", immediateRender: false }, start);
+        // Colour and finish follow a little behind the motion: the button turns first, then drains, fills or changes metal.
+        tl!.fromTo(
+          ytState,
+          { fill: fromFill, glow: fromGlow, tier: fromTier },
+          { fill, glow, tier, duration: span * 0.7, ease: "power1.inOut", immediateRender: false },
+          start + span * 0.3,
+        );
+      }
+      const track = ytTracks[i];
+      if (track) {
+        const end = Math.max(arrive + 0.0005, at(top + section.offsetHeight - vh));
+        const from = Object.fromEntries(Object.keys(track).map((k) => [k, list[i][k as keyof YtFrame]]));
+        tl!.fromTo(ytState, from, { ...track, duration: end - arrive, ease: "none", immediateRender: false }, arrive);
+      }
+    });
+    tl.progress(progress);
+  };
+  applyYtFrame(list[0]);
+  build();
+  ScrollTrigger.addEventListener("refresh", build);
+  return () => {
+    ScrollTrigger.removeEventListener("refresh", build);
+    tl?.scrollTrigger?.kill();
+    tl?.kill();
+  };
+}
+
+/** Reduced motion: the button does not travel; each screen cuts to its settled pose behind a short canvas fade. */
 function buildReduced(list: YtFrame[], invalidate: () => void) {
   const layer = document.getElementById("scene-layer");
   const cut = (frame: YtFrame) =>
@@ -63,8 +124,8 @@ function buildReduced(list: YtFrame[], invalidate: () => void) {
       trigger: section,
       start: "top center",
       end: "bottom center",
-      onEnter: () => cut(list[i]),
-      onEnterBack: () => cut(list[i]),
+      onEnter: () => cut(settled(list, i)),
+      onEnterBack: () => cut(settled(list, i)),
     });
   });
 }
@@ -80,10 +141,10 @@ export function YtScrollTimeline() {
       (ctx) => {
         const { mobile, reduced } = ctx.conditions as { mobile: boolean; reduced: boolean };
         const list = ytFrames[mobile ? "mobile" : "desktop"];
-        if (reduced) buildReduced(list, invalidate);
-        else buildScrub(list, invalidate);
+        const cleanup = reduced ? buildReduced(list, invalidate) : buildScrub(list, invalidate);
         syncCss();
         invalidate();
+        return cleanup;
       },
     );
     return () => mm.revert();

@@ -75,8 +75,48 @@ export type PlayButton = {
   triangle: Mesh;
   bodyMaterial: MeshPhysicalMaterial;
   triangleMaterial: MeshPhysicalMaterial;
+  /** Liquid fill of the body: level 0..1, wave time, the colour of the empty part and of the glowing surface line. */
+  fill: { uFill: { value: number }; uTime: { value: number }; uEmpty: { value: Color }; uEdge: { value: Color } };
   dispose: () => void;
 };
+
+/**
+ * Teaches the body material to be "filled": below a wavy level the surface keeps its colour, above it turns to the empty grey,
+ * and the level itself glows like the surface of a liquid. Works in the body's own space, so it turns with the button.
+ */
+function addFill(material: MeshPhysicalMaterial, fill: PlayButton["fill"]) {
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, fill);
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", `#include <common>\nvarying vec3 vFillPos;`)
+      .replace("#include <begin_vertex>", `#include <begin_vertex>\nvFillPos = position;`);
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <common>",
+        `#include <common>
+        varying vec3 vFillPos;
+        uniform float uFill;
+        uniform float uTime;
+        uniform vec3 uEmpty;
+        uniform vec3 uEdge;`,
+      )
+      .replace(
+        "#include <color_fragment>",
+        `#include <color_fragment>
+        // The wave calms down near empty and full, so a resting button has a flat, still surface.
+        float fillCalm = 1.0 - abs(uFill * 2.0 - 1.0);
+        float fillLevel = mix(-0.62, 0.62, uFill) + sin(vFillPos.x * 6.0 + uTime * 2.4) * 0.03 * fillCalm + sin(vFillPos.x * 11.0 - uTime * 1.7) * 0.012 * fillCalm;
+        float fillInside = smoothstep(fillLevel + 0.006, fillLevel - 0.006, vFillPos.y);
+        diffuseColor.rgb = mix(uEmpty, diffuseColor.rgb, fillInside);`,
+      )
+      .replace(
+        "#include <emissivemap_fragment>",
+        `#include <emissivemap_fragment>
+        totalEmissiveRadiance += uEdge * (1.0 - smoothstep(0.0, 0.035, abs(vFillPos.y - fillLevel))) * fillCalm * 1.6;`,
+      );
+  };
+  material.customProgramCacheKey = () => "yt-fill";
+}
 
 function extrude(shape: Shape, depth: number, bevel: number, curveSegments: number, bevelSegments: number): BufferGeometry {
   const g = new ExtrudeGeometry(shape, {
@@ -110,8 +150,19 @@ export function buildPlayButton(quality: PlayButtonQuality): PlayButton {
     clearcoatRoughness: 0.08,
     sheen: high ? 0.4 : 0,
     sheenColor: new Color("#FF6680"),
+    // Kept just above zero: crossing zero would recompile the shader mid-scroll; the diamond finish raises it to 1.
+    iridescence: 0.001,
+    iridescenceIOR: 1.8,
+    iridescenceThicknessRange: [250, 900],
     envMapIntensity: 1.1,
   });
+  const fill: PlayButton["fill"] = {
+    uFill: { value: 1 },
+    uTime: { value: 0 },
+    uEmpty: { value: new Color(playButtonColors.redDim) },
+    uEdge: { value: new Color("#FF5577") },
+  };
+  addFill(bodyMaterial, fill);
   const triangleMaterial = new MeshPhysicalMaterial({
     color: new Color(playButtonColors.triangle),
     roughness: 0.38,
@@ -136,6 +187,7 @@ export function buildPlayButton(quality: PlayButtonQuality): PlayButton {
     triangle,
     bodyMaterial,
     triangleMaterial,
+    fill,
     dispose: () => {
       bodyGeometry.dispose();
       triangleGeometry.dispose();
@@ -147,6 +199,13 @@ export function buildPlayButton(quality: PlayButtonQuality): PlayButton {
 
 /** Front face z of the body, for placing effects (press ripple, scan line) right on the button. */
 export const PLAY_BUTTON_FRONT_Z = BODY_DEPTH / 2 + BODY_BEVEL;
+
+/** The flat silhouette of the body, for the colour-split ghosts of the glitch. */
+export function buildSilhouetteGeometry(): ShapeGeometry {
+  const g = new ShapeGeometry(bodyShape(), 24);
+  g.scale(UNIT, UNIT, UNIT);
+  return g;
+}
 
 /** A thin band along the button silhouette, used for the rings that run outwards when the button is pressed. */
 export function buildRippleGeometry(): ShapeGeometry {

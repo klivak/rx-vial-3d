@@ -10,7 +10,8 @@ test("YouTube page boots: loader, headline, then the 3D button, without errors",
 
   await expect(page.getByRole("progressbar", { name: "Loading" })).toBeAttached();
   await expect(page.getByRole("heading", { level: 1, name: "Putting in the work, but the views aren’t coming?" })).toBeAttached();
-  await expect(page.locator("#scene-layer canvas")).toBeAttached({ timeout: 20_000 });
+  await expect(page.locator("#scene-layer canvas[data-dots]")).toBeAttached();
+  await expect(page.locator("#scene-layer canvas:not([data-dots])")).toBeAttached({ timeout: 20_000 });
   await expect(page.locator("html")).not.toHaveClass(/is-loading/, { timeout: 10_000 });
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 
@@ -19,9 +20,9 @@ test("YouTube page boots: loader, headline, then the 3D button, without errors",
   expect(errors).toEqual([]);
 });
 
-test("YouTube page has all ten screens with real headings", async ({ page }) => {
+test("YouTube page has all twelve screens with real headings", async ({ page }) => {
   await page.goto("youtube/");
-  await expect(page.locator("[data-yt-frame]")).toHaveCount(10);
+  await expect(page.locator("[data-yt-frame]")).toHaveCount(12);
   // SplitWords puts a space inside every word mask, so compare text with whitespace collapsed.
   const headings = (await page.getByRole("heading", { level: 2 }).allTextContents()).map((t) => t.replace(/\s+/g, " ").trim());
   expect(headings).toEqual([
@@ -29,9 +30,11 @@ test("YouTube page has all ten screens with real headings", async ({ page }) => 
     "Your channel, read through 35+ independent lenses.",
     "One score. One bottleneck. One plan.",
     "Your 15 best and 15 weakest, side by side.",
+    "See where you stand in your niche.",
     "Start free. Go deeper when you’re ready.",
     "From channel to a real action plan in four steps.",
     "A whole studio of tools around your channel.",
+    "Every Play Button starts with one fix.",
     "Press play on your channel.",
     "Questions creators ask",
   ]);

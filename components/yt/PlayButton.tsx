@@ -5,8 +5,13 @@ import { useEffect, useMemo, useRef } from "react";
 import { AdditiveBlending, CanvasTexture, Color, Group, Mesh, MeshBasicMaterial, PlaneGeometry } from "three";
 import { parallax, startParallax } from "@/lib/parallax";
 import { getQuality } from "@/lib/quality";
-import { buildPlayButton, buildRippleGeometry, PLAY_BUTTON_FRONT_Z, playButtonColors } from "@/lib/yt/buildPlayButton";
+import { buildPlayButton, buildRippleGeometry, PLAY_BUTTON_FRONT_Z } from "@/lib/yt/buildPlayButton";
+import { GlitchGhosts, OrbitRings } from "@/components/yt/ButtonFx";
+import { Sparkles } from "@/components/yt/Sparkles";
 import { AUDIT_URL } from "@/lib/yt/copy";
+import { applyFinish } from "@/lib/yt/finishes";
+import { glitchAt } from "@/lib/yt/glitch";
+import { buttonMaxHeight, columnShare } from "@/lib/yt/layout";
 import { ytPointer, ytState } from "@/lib/yt/state";
 
 /** Radians the button turns towards the pointer (or the phone's tilt). */
@@ -15,11 +20,12 @@ const TILT_X = 0.22;
 const RIPPLE_SECONDS = 1.1;
 const RIPPLES = 2;
 
-const red = new Color(playButtonColors.red);
-const dim = new Color(playButtonColors.redDim);
-const white = new Color(playButtonColors.triangle);
 const whiteDim = new Color("#8E93A3");
+const triangleTint = new Color();
 const smooth = { x: 0, y: 0 };
+/** Seconds between the rings the button sends out on its own while the tools orbit it. */
+const ORBIT_PULSE = 2.4;
+let lastPulse = -Infinity;
 
 /** Soft streak for the scan line: bright in the middle, fading to nothing at the sides and towards the ends. */
 function streakTexture() {
@@ -47,7 +53,7 @@ function streakTexture() {
 
 /**
  * The hero object. Scroll moves it between frames (ytState); on top of that it floats, turns towards the pointer, sinks in under
- * hover, presses with an outward ring on click, and fades to grey while the page talks about a stalled channel.
+ * hover, presses with an outward ring on click, drains and refills like a glass of liquid, and turns into silver, gold and diamond.
  */
 export function PlayButton() {
   // Built once at the starting tier: rebuilding on a runtime quality change swapped the meshes mid-animation and flashed.
@@ -85,6 +91,25 @@ export function PlayButton() {
       }),
     [streak],
   );
+  // Plating band: a warm or cool light that crosses the face while the button changes from one award metal to the next.
+  const platingLines = useMemo(
+    () =>
+      [
+        [0.12, 1],
+        [0.7, 0.45],
+      ].map(([width, strength]) => {
+        const m = new Mesh(
+          new PlaneGeometry(width, 1.15),
+          new MeshBasicMaterial({ map: streak, transparent: true, opacity: 0, depthWrite: false, blending: AdditiveBlending }),
+        );
+        m.position.z = PLAY_BUTTON_FRONT_Z + 0.07;
+        m.rotation.z = -0.35;
+        m.userData.strength = strength;
+        m.visible = false;
+        return m;
+      }),
+    [streak],
+  );
   const clock = useThree((st) => st.clock);
   const invalidate = useThree((st) => st.invalidate);
   const root = useRef<Group>(null);
@@ -102,12 +127,16 @@ export function PlayButton() {
         l.geometry.dispose();
         (l.material as MeshBasicMaterial).dispose();
       });
+      platingLines.forEach((l) => {
+        l.geometry.dispose();
+        (l.material as MeshBasicMaterial).dispose();
+      });
       streak.dispose();
     },
-    [rippleGeometry, ripples, scanLines, streak],
+    [rippleGeometry, ripples, scanLines, platingLines, streak],
   );
 
-  useFrame(({ clock, viewport, camera, invalidate }, delta) => {
+  useFrame(({ clock, viewport, camera, invalidate, size: screen }, delta) => {
     if (!root.current || !tilt.current || !press.current) return;
     const s = ytState;
     const t = clock.elapsedTime;
@@ -124,9 +153,12 @@ export function PlayButton() {
     p.press *= Math.exp(-delta * 5);
     if (p.press < 1e-3) p.press = 0;
 
-    const size = s.scale * vp.height;
+    // Frame scale is a share of the screen height, capped by the column width so narrow laptops get a smaller button.
+    const size = Math.min(s.scale * vp.height, buttonMaxHeight(screen.width) * (vp.height / screen.height));
+    // Glitch burst (fired as pains light up): stepped sideways jumps and a twist, scaled to the button.
+    const glitch = glitchAt(performance.now());
     root.current.position.set(
-      (s.x * vp.width) / 2,
+      (s.x * vp.width * columnShare(screen.width)) / 2 + glitch.shiftX * size,
       (s.y * vp.height) / 2 + Math.sin(t * 0.9) * 0.025 * s.idle * size,
       0,
     );
@@ -135,17 +167,28 @@ export function PlayButton() {
     tilt.current.rotation.set(
       s.rotX + smooth.y * TILT_X + Math.sin(t * 0.7) * 0.035 * s.idle,
       s.rotY + smooth.x * TILT_Y + Math.sin(t * 0.5) * 0.09 * s.idle,
-      s.rotZ + Math.sin(t * 0.43) * 0.02 * s.idle,
+      s.rotZ + Math.sin(t * 0.43) * 0.02 * s.idle + glitch.twist,
     );
     press.current.scale.z = 1 - p.hover * 0.12 - p.press * 0.3;
 
-    const health = s.health;
-    button.bodyMaterial.color.copy(dim).lerp(red, health);
-    button.bodyMaterial.roughness = 0.62 - 0.3 * health;
-    button.bodyMaterial.clearcoat = 0.25 + 0.75 * health;
-    button.triangleMaterial.color.copy(whiteDim).lerp(white, health);
+    // Finish (red lacquer or an award metal), then the liquid fill on top: the empty part is grey, the level glows.
+    const finish = applyFinish(button, s.tier);
+    const triangleGlow = finish.triangleGlow;
+    const fill = s.fill;
+    // In a glitch the old red flashes back for a slot or two: the channel trying to come alive.
+    button.fill.uFill.value = glitch.flash ? 1 : fill;
+    button.fill.uTime.value = t;
+    button.bodyMaterial.roughness += (1 - fill) * 0.3;
+    triangleTint.copy(button.triangleMaterial.color);
+    button.triangleMaterial.color.copy(whiteDim).lerp(triangleTint, 0.35 + 0.65 * fill);
     // A little self-light keeps the triangle reading as white against the lacquer even when it faces away from the softbox.
-    button.triangleMaterial.emissiveIntensity = (0.22 + p.hover * 0.2 + p.press * 0.5) * health;
+    button.triangleMaterial.emissiveIntensity = (triangleGlow + p.hover * 0.2 + p.press * 0.5) * (0.3 + 0.7 * fill);
+
+    // While the tools orbit it, the button sends out a ring of its own every few seconds, like a signal.
+    if (s.orbit > 0.5 && t - lastPulse > ORBIT_PULSE) {
+      lastPulse = t;
+      p.rippleAt = t;
+    }
 
     // Rings run outwards from the silhouette after a click, the second one a beat behind the first.
     let ringsLive = false;
@@ -169,9 +212,19 @@ export function PlayButton() {
       (line.material as MeshBasicMaterial).opacity = s.scan * line.userData.strength * Math.sin(Math.PI * phase);
     });
 
+    platingLines.forEach((line) => {
+      line.visible = finish.sweep >= 0;
+      if (!line.visible) return;
+      line.position.x = (finish.sweep - 0.5) * 2;
+      const material = line.material as MeshBasicMaterial;
+      material.color.copy(finish.sweepColor);
+      material.opacity = Math.sin(Math.PI * finish.sweep) * line.userData.strength * 0.9;
+    });
+
     // Demand frameloop: keep drawing while anything is alive; otherwise the GPU rests until the next scroll update.
     const settling = Math.abs(parallax.x - smooth.x) + Math.abs(parallax.y - smooth.y) > 1e-3 || Math.abs(p.hoverTarget - p.hover) > 1e-3;
-    if (s.idle > 0 || s.scan > 0.01 || p.press > 0 || ringsLive || settling) invalidate();
+    const filling = fill > 0.001 && fill < 0.999;
+    if (s.idle > 0 || s.scan > 0.01 || filling || glitch.strength > 0 || p.press > 0 || ringsLive || settling) invalidate();
   });
 
   const over = (e: ThreeEvent<PointerEvent>) => {
@@ -206,7 +259,13 @@ export function PlayButton() {
         {scanLines.map((l, i) => (
           <primitive key={`scan-${i}`} object={l} />
         ))}
+        {platingLines.map((l, i) => (
+          <primitive key={`plate-${i}`} object={l} />
+        ))}
+        <GlitchGhosts />
+        <Sparkles />
       </group>
+      <OrbitRings />
     </group>
   );
 }

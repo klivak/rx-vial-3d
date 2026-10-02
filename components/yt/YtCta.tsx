@@ -15,7 +15,7 @@ export function YtCta() {
       </p>
       {/* The reveal moves the wrapper: the button's own hover transition would fight a tween on the same transform. */}
       <div data-reveal className="mt-8">
-        <a href={AUDIT_URL} className="yt-btn-primary inline-block rounded-full px-7 py-4 text-base font-medium">
+        <a href={AUDIT_URL} data-magnetic className="yt-btn-primary inline-block rounded-full px-7 py-4 text-base font-medium">
           {c.button}
         </a>
       </div>

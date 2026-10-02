@@ -3,6 +3,7 @@
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useEffect } from "react";
+import { fireGlitch } from "@/lib/yt/state";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -20,14 +21,33 @@ function reveals() {
   });
 }
 
+/** Hero: the chips around the button and the press hint drift up and dissolve as the hero scrolls away. */
+function heroFade() {
+  const layer = document.querySelector("[data-hero-fade]");
+  if (!layer) return;
+  gsap.to(layer, {
+    opacity: 0,
+    y: -60,
+    filter: "blur(8px)",
+    ease: "none",
+    scrollTrigger: { trigger: layer, start: "top top", end: "+=40%", scrub: 0.5 },
+  });
+}
+
 /** `[data-draw]` paths draw themselves with the scroll; `[data-light]` items light up in turn while their group crosses the screen. */
 function scrubbedLines(desktop: boolean) {
   q<SVGPathElement>("[data-draw]").forEach((path) => {
     const length = path.getTotalLength();
-    gsap.fromTo(
-      path,
-      { strokeDasharray: length, strokeDashoffset: length },
-      { strokeDashoffset: 0, ease: "none", scrollTrigger: { trigger: path.closest("[data-yt-frame]") ?? path, start: "top 60%", end: "center 40%", scrub: 0.8 } },
+    const svg = path.ownerSVGElement;
+    const tl = gsap.timeline({
+      scrollTrigger: { trigger: path.closest("[data-yt-frame]") ?? path, start: "top 60%", end: "center 40%", scrub: 0.8 },
+    });
+    tl.fromTo(path, { strokeDasharray: length, strokeDashoffset: length }, { strokeDashoffset: 0, ease: "none", duration: 1 }, 0);
+    // The area under the line fills in behind the pen; the peak marker pops when the pen passes it, "now" at the very end.
+    const area = svg?.querySelector("[data-area]");
+    if (area) tl.fromTo(area, { opacity: 0 }, { opacity: 1, ease: "none", duration: 0.8 }, 0.2);
+    svg?.querySelectorAll("[data-marker]").forEach((marker, i) =>
+      tl.fromTo(marker, { opacity: 0, y: 6 }, { opacity: 1, y: 0, duration: 0.12, ease: "power2.out" }, i === 0 ? 0.55 : 0.92),
     );
   });
   q("[data-light-group]").forEach((group) => {
@@ -36,6 +56,13 @@ function scrubbedLines(desktop: boolean) {
     const grow = group.querySelector("[data-grow]");
     if (grow) tl.fromTo(grow, desktop ? { scaleX: 0 } : { scaleY: 0 }, { scaleX: 1, scaleY: 1, duration: tl.duration(), ease: "none" }, 0);
   });
+}
+
+/** Screen 2: each pain that lights up hits the grey button with a short glitch, so the problems land on the channel one by one. */
+function painGlitches() {
+  q("#problem [data-light]").forEach((pain) =>
+    ScrollTrigger.create({ trigger: pain, start: "top 64%", onEnter: fireGlitch, onEnterBack: fireGlitch }),
+  );
 }
 
 /** Screen 3: the groups light up one by one, their checks tick in order, and the counter runs to 35+ across the sticky stage. */
@@ -48,7 +75,7 @@ function scan(desktop: boolean) {
   const count = { n: 0 };
   const tl = gsap.timeline({
     scrollTrigger: desktop
-      ? { trigger: section, start: "top top", end: "bottom bottom", scrub: 0.5 }
+      ? { trigger: section, start: "top 30%", end: "bottom bottom", scrub: 0.5 }
       : { trigger: section, start: "top 40%", end: "bottom 80%", scrub: 0.5 },
   });
   groups.forEach((group) => {
@@ -88,6 +115,19 @@ function report() {
   });
   tl.from(q("[data-bar]", section), { scaleX: 0, duration: 1.2, ease: "power3.out", stagger: 0.12 }, 0.35);
   tl.from(q("[data-row]", section), { opacity: 0, x: 18, duration: 0.7, ease: "power3.out", stagger: 0.07 }, 0.5);
+}
+
+/** Screen 6: benchmark bars grow from zero, row by row, when the card scrolls in. */
+function bench() {
+  const section = document.querySelector<HTMLElement>("[data-bench]");
+  if (!section) return;
+  gsap.from(q("[data-bench-bar]", section), {
+    scaleX: 0,
+    duration: 1.1,
+    ease: "power3.out",
+    stagger: 0.05,
+    scrollTrigger: { trigger: section.querySelector(".yt-glass") ?? section, start: "top 70%", toggleActions: "play none none reverse" },
+  });
 }
 
 /** Screen 5: twelve thumbnails start scattered over the screen and the scroll sorts them into "best" and "weakest". */
@@ -155,6 +195,49 @@ function orbit(drift: boolean) {
   };
 }
 
+/** Buttons lean towards the mouse (a few pixels, via the separate `translate` property so hover transforms are untouched). */
+function magnetic() {
+  const els = q("[data-magnetic]");
+  const move = (e: PointerEvent) => {
+    const el = e.currentTarget as HTMLElement;
+    const r = el.getBoundingClientRect();
+    el.style.setProperty("--tx", `${((e.clientX - r.left) / r.width - 0.5) * 10}px`);
+    el.style.setProperty("--ty", `${((e.clientY - r.top) / r.height - 0.5) * 8}px`);
+  };
+  const leave = (e: PointerEvent) => {
+    const el = e.currentTarget as HTMLElement;
+    el.style.setProperty("--tx", "0px");
+    el.style.setProperty("--ty", "0px");
+  };
+  els.forEach((el) => {
+    el.addEventListener("pointermove", move);
+    el.addEventListener("pointerleave", leave);
+  });
+  return () =>
+    els.forEach((el) => {
+      el.removeEventListener("pointermove", move);
+      el.removeEventListener("pointerleave", leave);
+    });
+}
+
+/** A ring of light spreads from the exact point a button is pressed. Works for mouse and touch. */
+function ripples() {
+  const press = (e: PointerEvent) => {
+    const el = (e.target as Element | null)?.closest<HTMLElement>(".yt-btn-primary, .yt-btn-ghost");
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const dot = document.createElement("span");
+    dot.className = "yt-ripple";
+    dot.style.left = `${e.clientX - r.left}px`;
+    dot.style.top = `${e.clientY - r.top}px`;
+    dot.style.setProperty("--d", `${Math.hypot(r.width, r.height) * 2}px`);
+    el.appendChild(dot);
+    dot.addEventListener("animationend", () => dot.remove());
+  };
+  document.addEventListener("pointerdown", press);
+  return () => document.removeEventListener("pointerdown", press);
+}
+
 /** Plan cards: spotlight and a small tilt that follow the pointer, written as CSS variables. */
 function spotlights() {
   const cards = q("[data-spot]");
@@ -195,12 +278,17 @@ export function YtMotion() {
       const { desktop, motion } = ctx.conditions as { desktop: boolean; motion: boolean };
       const cleanups: Array<() => void> = [];
       if (desktop) cleanups.push(spotlights(), orbit(motion));
+      if (motion) cleanups.push(ripples());
+      if (desktop && motion) cleanups.push(magnetic());
       if (motion) {
         reveals();
+        heroFade();
+        painGlitches();
         scrubbedLines(desktop);
         scan(desktop);
         report();
         thumbs();
+        bench();
       }
       return () => cleanups.forEach((fn) => fn());
     });

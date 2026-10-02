@@ -10,6 +10,7 @@ html:has(.yt-page) {
   --yt-y: 52%;
   --yt-glow: 1;
   --yt-health: 1;
+  --yt-tier: 0;
   color-scheme: dark;
 }
 html:has(.yt-page) body { background: var(--background); color: var(--foreground); }
@@ -27,27 +28,20 @@ html.lenis, html.lenis body { height: auto; }
     radial-gradient(50% 45% at 100% 100%, rgb(124 58 237 / 0.14), transparent 70%),
     var(--background);
 }
-.yt-grid {
-  background-image:
-    linear-gradient(rgb(255 255 255 / 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 0.045) 1px, transparent 1px);
-  background-size: 72px 72px;
-  background-position: center;
-  mask-image: radial-gradient(ellipse 70% 60% at var(--yt-x) var(--yt-y), #000 10%, transparent 75%);
-}
 /* The red light behind the button. It travels with the button and dims as the channel "loses health"; soft, never neon. */
 .yt-glow {
   background:
-    radial-gradient(28vmax 22vmax at var(--yt-x) var(--yt-y), rgb(255 0 51 / calc(0.2 * var(--yt-glow))), transparent 70%),
+    radial-gradient(28vmax 22vmax at var(--yt-x) var(--yt-y), rgb(255 0 51 / calc(0.2 * var(--yt-glow) * (1 - min(var(--yt-tier, 0), 1)))), transparent 70%),
+    radial-gradient(30vmax 24vmax at var(--yt-x) var(--yt-y), rgb(255 196 92 / calc(0.16 * min(var(--yt-tier, 0), 1))), transparent 70%),
     radial-gradient(40vmax 30vmax at var(--yt-x) var(--yt-y), rgb(124 58 237 / calc(0.08 + 0.06 * (1 - var(--yt-health)))), transparent 70%);
 }
 
 /* No-WebGL poster and boot placeholder: the flat button where the 3D one will appear. */
 .yt-poster {
   position: absolute;
-  left: 74%;
-  top: 52%;
-  height: 29vh;
+  left: calc(50% + min(25vw - 32px, 384px));
+  top: 51%;
+  height: min(29vh, calc((100vw - 128px) * 0.19));
   width: auto;
   transform: translate(-50%, -50%) perspective(900px) rotateY(-22deg);
   filter: drop-shadow(0 30px 60px rgb(255 0 51 / 0.25));
@@ -57,22 +51,68 @@ html.lenis, html.lenis body { height: auto; }
   .yt-poster { left: 55%; top: 87%; height: 12vh; transform: translate(-50%, -50%); }
 }
 
-/* Loader: holds 100 % for a beat, then the button swells and blurs away while the screen fades to the page. */
-.yt-loader { transition: opacity 0.8s cubic-bezier(0.65, 0, 0.35, 1) 0.45s, visibility 0s linear 1.25s; }
-.yt-loader.is-done { opacity: 0; visibility: hidden; pointer-events: none; }
-.yt-loader-stage { transition: transform 1s cubic-bezier(0.65, 0, 0.35, 1) 0.4s, filter 0.8s ease 0.45s, opacity 0.8s ease 0.45s; }
-.yt-loader.is-done .yt-loader-stage { transform: scale(1.18); filter: blur(10px); opacity: 0; }
+/* Loader. The hole in the mask grows from the button centre when loading is done, so the page opens as a circle. */
+@property --hole { syntax: "<length>"; inherits: false; initial-value: 0px; }
+.yt-loader {
+  --hole: 0px;
+  mask-image: radial-gradient(circle at var(--hx, 50%) var(--hy, 50%), transparent var(--hole), #000 calc(var(--hole) + 1px));
+  transition: --hole 1.05s cubic-bezier(0.7, 0, 0.25, 1) 0.6s, visibility 0s linear 1.7s;
+}
+.yt-loader.is-done { --hole: 150vmax; visibility: hidden; pointer-events: none; }
+.yt-loader-fade { transition: opacity 0.35s ease 0.2s, transform 0.5s ease 0.2s; }
+.yt-loader.is-done .yt-loader-fade { opacity: 0; transform: translateY(8px); }
+
+/* Drifting feed of video thumbnails behind everything, tilted, faded at the edges. */
+@keyframes yt-feed { to { transform: translateX(-50%); } }
+.yt-feed {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+  opacity: 0.14;
+  transform: rotate(-8deg) scale(1.25);
+  mask-image: radial-gradient(ellipse 60% 55% at 50% 50%, #000 30%, transparent 80%);
+  transition: opacity 0.6s ease 0.3s;
+}
+.yt-loader.is-done .yt-feed { opacity: 0; }
+.yt-feed-row { display: flex; gap: 18px; width: max-content; animation: yt-feed calc(44s + var(--row) * 9s) linear infinite; }
+.yt-feed-row:nth-child(2) { animation-direction: reverse; margin-left: -120px; }
+.yt-feed-card { width: 220px; aspect-ratio: 16 / 9; border-radius: 14px; flex: none; }
+
+/* The button: liquid surface slides sideways forever; before hydration the outline runs its own loop. */
+@keyframes yt-wave { to { transform: translateX(30px); } }
+.yt-loader-wave { animation: yt-wave 1.6s linear infinite; }
+@keyframes yt-outline { 0% { stroke-dashoffset: 1; } 50% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -1; } }
+.yt-loader:not([data-live]) .yt-loader-outline { animation: yt-outline 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite; }
 .yt-loader-halo {
   position: absolute;
   top: -3rem;
   left: 50%;
-  width: 22rem;
-  height: 14rem;
+  width: 24rem;
+  height: 15rem;
   transform: translateX(-50%);
-  background: radial-gradient(closest-side, rgb(255 0 51 / 0.22), transparent);
+  background: radial-gradient(closest-side, rgb(255 0 51 / 0.24), transparent);
   pointer-events: none;
 }
 .yt-loader-knob { box-shadow: 0 0 0 4px rgb(255 0 51 / 0.18); }
+
+/* Exit: the button presses, two rings run out from it, then it fades as the circle opens. */
+@keyframes yt-press {
+  0% { transform: scale(1); opacity: 1; }
+  22% { transform: scale(0.9); opacity: 1; }
+  55% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1.14); opacity: 0; }
+}
+.yt-loader.is-done .yt-loader-mark { animation: yt-press 1.4s ease-out 0.1s both; }
+@keyframes yt-ring { from { transform: scale(1); opacity: 0.85; } to { transform: scale(2.1); opacity: 0; } }
+.yt-loader-ring { position: absolute; inset: -4%; border-radius: 30% / 42%; border: 2px solid #ff0033; opacity: 0; pointer-events: none; }
+.yt-loader.is-done .yt-loader-ring { animation: yt-ring 0.95s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both; }
+.yt-loader.is-done .yt-loader-ring.is-late { animation-delay: 0.48s; }
+
+/* Content column: every screen lays out inside it, and the 3D button positions are fractions of it (lib/yt/layout.ts). */
+.yt-container { width: 100%; max-width: 96rem; margin-inline: auto; container-type: inline-size; }
+/* Hero button height, the same formula as PlayButton: 36 % of the screen height, at most 24 % of the column width (lib/yt/layout.ts). */
+.yt-hero-frame { --btn-h: min(36vh, 24cqw); --btn-w: calc(var(--btn-h) * 1.35); --cx: 75%; --cy: 51%; }
 
 /* Small type and surfaces */
 .yt-eyebrow {
@@ -117,8 +157,8 @@ html.lenis, html.lenis body { height: auto; }
 .yt-btn-ghost:hover { background: rgb(255 255 255 / 0.08); border-color: rgb(255 255 255 / 0.24); }
 .yt-btn-primary:focus-visible, .yt-btn-ghost:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
 
-/* "Press the button" sits just under the 3D button on wide screens. */
-.yt-press-hint { left: 75%; top: calc(51% + 22vh); transform: translateX(-50%); }
+/* "Press the button" sits just under the 3D button, right of centre. */
+.yt-press-hint { left: calc(var(--cx) + var(--btn-w) * 0.02); top: calc(var(--cy) + var(--btn-h) * 0.5 + 44px); }
 
 /* Pains light up in turn (--lit 0..1 from the scroll); the dot turns from grey to YouTube red. Lit by default without JS. */
 .yt-pain {
@@ -210,10 +250,77 @@ html.lenis, html.lenis body { height: auto; }
   .yt-faq[open]::details-content { height: auto; }
 }
 
+/* Backdrop extras: slow aurora drift and fine film grain over the scene (the mouse-reactive dot field is a canvas, YtDotField). */
+@keyframes yt-drift-a { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(6vw, 4vh, 0) scale(1.12); } }
+@keyframes yt-drift-b { 0%, 100% { transform: translate3d(0, 0, 0) scale(1.05); } 50% { transform: translate3d(-5vw, -6vh, 0) scale(0.95); } }
+.yt-aurora::before, .yt-aurora::after { content: ""; position: absolute; border-radius: 9999px; will-change: transform; }
+.yt-aurora::before { left: -10vw; top: -15vh; width: 60vw; height: 60vh; background: radial-gradient(closest-side, rgb(46 89 231 / 0.16), transparent); animation: yt-drift-a 26s ease-in-out infinite; }
+.yt-aurora::after { right: -12vw; bottom: -20vh; width: 55vw; height: 65vh; background: radial-gradient(closest-side, rgb(124 58 237 / 0.13), transparent); animation: yt-drift-b 32s ease-in-out infinite; }
+.yt-grain {
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Buttons: magnetic lean (translate), a light sweep across the primary button on hover, and a press ripple. */
+[data-magnetic] { translate: var(--tx, 0px) var(--ty, 0px); transition: translate 0.45s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, background-color 0.3s ease, border-color 0.3s ease; }
+.yt-btn-primary, .yt-btn-ghost { position: relative; overflow: hidden; isolation: isolate; }
+.yt-btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.35) 50%, transparent 65%);
+  transform: translateX(-110%);
+}
+.yt-btn-primary:hover::after { transform: translateX(110%); transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1); }
+@keyframes yt-ripple { from { transform: translate(-50%, -50%) scale(0); opacity: 0.45; } to { transform: translate(-50%, -50%) scale(1); opacity: 0; } }
+.yt-ripple { position: absolute; width: var(--d); height: var(--d); border-radius: 9999px; background: rgb(255 255 255 / 0.5); pointer-events: none; z-index: -1; animation: yt-ripple 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* Hero: the highlighted word and the chips floating around the 3D button. */
+.yt-hl { background: linear-gradient(100deg, #ff3355, #ff0033 40%, #ff6a3d); -webkit-background-clip: text; background-clip: text; color: transparent; }
+@keyframes yt-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.yt-chip { translate: calc(var(--px, 0) * var(--depth) * 1px) calc(var(--py, 0) * var(--depth) * 1px); transition: translate 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+.yt-chip > span { animation: yt-bob 6s ease-in-out infinite; box-shadow: 0 20px 50px rgb(0 0 0 / 0.35); }
+/* Chips sit just outside the button's edges: two above it (left and right of centre), one below on the left; the hint below right. */
+/* Anchored with right/bottom rather than a translate: the entrance animation owns `transform` on these elements. */
+.yt-chip-a { --depth: -26; right: calc(100% - var(--cx) + var(--btn-w) * 0.1); bottom: calc(100% - var(--cy) + var(--btn-h) * 0.5 + 20px); }
+.yt-chip-a > span { animation-delay: -1s; }
+.yt-chip-b { --depth: 34; left: calc(var(--cx) + var(--btn-w) * 0.2); bottom: calc(100% - var(--cy) + var(--btn-h) * 0.5 + 56px); }
+.yt-chip-b > span { animation-delay: -3s; }
+.yt-chip-c { --depth: 20; right: calc(100% - var(--cx) + var(--btn-w) * 0.18); top: calc(var(--cy) + var(--btn-h) * 0.5 + 28px); }
+.yt-chip-c > span { animation-delay: -4.5s; }
+
+/* Problem chart: active tab underline and the pulsing "now". */
+.yt-tab-active { box-shadow: inset 0 -2px 0 #ff0033; }
+@keyframes yt-now { 0%, 100% { transform: scale(0.6); opacity: 0.5; } 70% { transform: scale(1.6); opacity: 0; } }
+.yt-now-pulse { transform-box: fill-box; transform-origin: center; animation: yt-now 2s ease-out infinite; }
+
+/* Screen 6: benchmark bars. */
+.yt-bench-you { background: linear-gradient(90deg, #ff0033, #ff5c7a); box-shadow: 0 0 14px rgb(255 0 51 / 0.45); }
+.yt-bench-them { background: #6e8bff; opacity: calc(0.35 + 0.45 * var(--o, 1)); }
+
+/* Screen 10: award rows light up as the button's metal reaches them (--lit is written by the scroll timeline). Dimming sits on the
+   row's children: the row itself carries the reveal tween's inline opacity. */
+.yt-award {
+  --lit: 0;
+  background: rgb(255 255 255 / calc(0.02 + 0.05 * var(--lit)));
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / calc(0.05 + 0.12 * var(--lit)));
+}
+.yt-award > * { opacity: calc(0.4 + 0.6 * var(--lit)); }
+.yt-award-chip { box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.5); }
+.yt-award.is-silver .yt-award-chip { background: linear-gradient(135deg, #f4f6f9, #9aa3ae); }
+.yt-award.is-gold .yt-award-chip { background: linear-gradient(135deg, #ffe08a, #c58a1c); }
+.yt-award.is-diamond .yt-award-chip { background: linear-gradient(135deg, #ffffff, #a8d2ff 50%, #e1c8ff); }
+.yt-award > .yt-award-check { color: #4ade80; opacity: var(--lit); transform: scale(calc(0.6 + 0.4 * var(--lit))); }
+.yt-subs { background: linear-gradient(100deg, #f6f7fb, #c9d1e6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
 @media (prefers-reduced-motion: reduce) {
+  .yt-aurora::before, .yt-aurora::after, .yt-chip > span, .yt-now-pulse { animation: none; }
+  .yt-btn-primary::after { display: none; }
   .yt-live-dot { animation: none; }
   .yt-btn-primary, .yt-btn-ghost, .yt-spot, .yt-thumb > div { transition: none; }
   .yt-spot { transform: none; }
-  .yt-loader, .yt-loader-stage { transition-duration: 0.2s; transition-delay: 0s; }
-  .yt-loader.is-done .yt-loader-stage { transform: none; filter: none; }
+  .yt-loader, .yt-loader-fade, .yt-feed { transition-duration: 0.2s; transition-delay: 0s; }
+  .yt-feed-row, .yt-loader-wave, .yt-loader:not([data-live]) .yt-loader-outline, .yt-loader.is-done .yt-loader-mark, .yt-loader.is-done .yt-loader-ring { animation: none; }
 }
