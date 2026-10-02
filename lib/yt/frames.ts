@@ -86,11 +86,11 @@ export const ytFrames: Record<"desktop" | "mobile", YtFrame[]> = {
 export const ytSpans: Partial<Record<number, number>> = { 10: 1.5 };
 
 /**
- * In-section tracks by screen index: the scan refills the button, the score ring draws while the report scrolls by (done before the
- * screen leaves), the milestones turn it silver, gold, then diamond.
+ * In-section tracks by screen index: the scan refills the button while it turns to the right, the score ring draws while the report
+ * scrolls by (done before the screen leaves), the milestones turn it silver, gold, then diamond.
  */
 export const ytTracks: Partial<Record<number, YtTrack>> = {
-  2: { fill: 1, glow: 0.9 },
+  2: { fill: 1, glow: 0.9, rotY: -0.18 },
   3: { scoreDraw: 1 },
   9: { tier: 3 },
 };
