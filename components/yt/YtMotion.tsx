@@ -9,16 +9,20 @@ gsap.registerPlugin(ScrollTrigger);
 
 const q = <T extends Element = HTMLElement>(sel: string, root: ParentNode = document) => gsap.utils.toArray<T>(root.querySelectorAll(sel));
 
-/** Headings: words rise out of their line masks, then the section's `[data-reveal]` lines follow. The hero keeps its CSS intro. */
+/**
+ * Headings: words rise out of their line masks, then the section's `[data-reveal]` lines follow. The hero keeps its CSS intro.
+ * One setup step per section, so the costliest part of the setup does not run as a single long task.
+ */
 function reveals() {
-  q("[data-yt-frame]").forEach((section, i) => {
-    if (i === 0) return;
-    const words = section.querySelectorAll("[data-word]");
-    const items = section.querySelectorAll("[data-reveal]");
-    const tl = gsap.timeline({ scrollTrigger: { trigger: section, start: "top 55%", toggleActions: "play none none reverse" } });
-    if (words.length) tl.from(words, { yPercent: 115, rotate: 3, duration: 0.9, ease: "power4.out", stagger: 0.045 });
-    if (items.length) tl.from(items, { opacity: 0, y: 26, duration: 0.9, ease: "power3.out", stagger: 0.08 }, words.length ? "-=0.6" : 0);
-  });
+  return q("[data-yt-frame]")
+    .slice(1)
+    .map((section) => () => {
+      const words = section.querySelectorAll("[data-word]");
+      const items = section.querySelectorAll("[data-reveal]");
+      const tl = gsap.timeline({ scrollTrigger: { trigger: section, start: "top 55%", toggleActions: "play none none reverse" } });
+      if (words.length) tl.from(words, { yPercent: 115, rotate: 3, duration: 0.9, ease: "power4.out", stagger: 0.045 });
+      if (items.length) tl.from(items, { opacity: 0, y: 26, duration: 0.9, ease: "power3.out", stagger: 0.08 }, words.length ? "-=0.6" : 0);
+    });
 }
 
 /** Hero: the chips around the button and the press hint drift up and dissolve as the hero scrolls away. */
@@ -301,21 +305,28 @@ export function YtMotion() {
     const mm = gsap.matchMedia();
     mm.add({ desktop: "(min-width: 768px)", motion: "(prefers-reduced-motion: no-preference)" }, (ctx) => {
       const { desktop, motion } = ctx.conditions as { desktop: boolean; motion: boolean };
+      const steps: Array<() => void | (() => void)> = [];
+      if (desktop) steps.push(spotlights, () => orbit(motion));
+      if (motion) steps.push(ripples);
+      if (desktop && motion) steps.push(magnetic);
+      if (motion) steps.push(...reveals(), heroFade, painBeats, () => scrubbedLines(desktop), () => scan(desktop), report, thumbs, bench);
+      // One task per step instead of one long block during hydration: the loader covers the page until well after the last one runs,
+      // and `ctx.add` keeps every tween and trigger in this context, so a breakpoint change still reverts them all.
       const cleanups: Array<() => void> = [];
-      if (desktop) cleanups.push(spotlights(), orbit(motion));
-      if (motion) cleanups.push(ripples());
-      if (desktop && motion) cleanups.push(magnetic());
-      if (motion) {
-        reveals();
-        heroFade();
-        painBeats();
-        scrubbedLines(desktop);
-        scan(desktop);
-        report();
-        thumbs();
-        cleanups.push(bench());
-      }
-      return () => cleanups.forEach((fn) => fn());
+      let next = 0;
+      let timer = 0;
+      const run = () => {
+        ctx.add(() => {
+          const cleanup = steps[next++]();
+          if (cleanup) cleanups.push(cleanup);
+        });
+        timer = next < steps.length ? window.setTimeout(run) : 0;
+      };
+      if (steps.length) run();
+      return () => {
+        clearTimeout(timer);
+        cleanups.forEach((fn) => fn());
+      };
     });
     return () => mm.revert();
   }, []);
