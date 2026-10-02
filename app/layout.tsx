@@ -31,9 +31,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="is-loading">
-      <noscript>
-        <style>{`.loader{display:none}html.is-loading{overflow:auto}`}</style>
-      </noscript>
+      <head>
+        <noscript>
+          <style>{`.loader{display:none}html.is-loading{overflow:auto}`}</style>
+        </noscript>
+      </head>
       <body className={`${inter.variable} font-sans antialiased`}>
         <a
           href="#content"

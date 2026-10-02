@@ -12,7 +12,7 @@ import {
   type WebGLRenderer,
 } from "three";
 
-type Light = {
+export type StudioLight = {
   geometry: PlaneGeometry | RingGeometry;
   intensity: number;
   color?: string;
@@ -21,7 +21,7 @@ type Light = {
 };
 
 /** Softbox layout: one large top light, two tall rim strips for the glass edges, a warm front fill and a ring for a round highlight. */
-const lights: Light[] = [
+const defaultLights: StudioLight[] = [
   { geometry: new PlaneGeometry(), intensity: 2.6, position: [0, 4, 1], scale: [6, 4, 1] },
   { geometry: new PlaneGeometry(), intensity: 3, position: [-3, 1, 1], scale: [0.6, 5, 1] },
   { geometry: new PlaneGeometry(), intensity: 3, position: [3, 1, 1], scale: [0.6, 5, 1] },
@@ -33,9 +33,12 @@ const lights: Light[] = [
  * Studio lighting baked into an environment map on the GPU once: zero network requests and none of the HDR/EXR/gain-map loaders
  * that a generic <Environment> component bundles.
  */
-export function createStudioEnvironment(renderer: WebGLRenderer): Texture {
+export function createStudioEnvironment(
+  renderer: WebGLRenderer,
+  { room: roomColor = "#5E5850", lights = defaultLights }: { room?: string; lights?: StudioLight[] } = {},
+): Texture {
   const scene = new Scene();
-  const room = new Mesh(new BoxGeometry(12, 12, 12), new MeshBasicMaterial({ color: "#5E5850", side: BackSide }));
+  const room = new Mesh(new BoxGeometry(12, 12, 12), new MeshBasicMaterial({ color: roomColor, side: BackSide }));
   scene.add(room);
   for (const l of lights) {
     const material = new MeshBasicMaterial({ color: new Color(l.color ?? "#FFFFFF").multiplyScalar(l.intensity), side: 2 });
