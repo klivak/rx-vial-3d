@@ -122,8 +122,9 @@ function report() {
 }
 
 /**
- * Screen 6: the benchmark plays once, in reading order. The legend arrives, then each chart in turn: its label, its rows sliding in,
- * bars growing and numbers counting up from zero, with the next chart starting as the previous one settles. The insight lands last.
+ * Screen 6: the benchmark is tied to the scroll, in reading order. The legend arrives, then each chart in turn: its label, its rows
+ * sliding in, bars growing and numbers counting up from zero, with the next chart starting as the previous one settles. The insight
+ * lands last, just as the bottom of the card is on screen, so a fast scroll never leaves half-drawn charts behind.
  */
 function bench() {
   const section = document.querySelector<HTMLElement>("[data-bench]");
@@ -131,14 +132,13 @@ function bench() {
   const card = section.querySelector(".yt-glass") ?? section;
   const values = q("[data-bench-value]", section);
   const finals = values.map((el) => el.textContent ?? "");
-  // The card itself fades in with the section reveal; the charts wait a beat so they play on a card that is already there.
-  const tl = gsap.timeline({ delay: 0.25, scrollTrigger: { trigger: card, start: "top 70%", toggleActions: "play none none reverse" } });
+  const tl = gsap.timeline({ scrollTrigger: { trigger: card, start: "top 80%", end: "bottom 85%", scrub: 0.5 } });
   tl.from(q("[data-bench-legend]", section), { opacity: 0, y: 8, duration: 0.5, ease: "power2.out", stagger: 0.07 }, 0);
   q("[data-bench-metric]", section).forEach((metric, k) => {
     const at = 0.35 + k * 0.7;
     tl.from(metric.querySelector("[data-bench-label]"), { opacity: 0, x: -12, duration: 0.5, ease: "power2.out" }, at);
     tl.from(q("[data-bench-row]", metric), { opacity: 0, x: 14, duration: 0.55, ease: "power3.out", stagger: 0.08 }, at + 0.08);
-    tl.from(q("[data-bench-bar]", metric), { scaleX: 0, duration: 1.2, ease: "expo.out", stagger: 0.08 }, at + 0.18);
+    tl.from(q("[data-bench-bar]", metric), { scaleX: 0, duration: 0.9, ease: "power2.out", stagger: 0.08 }, at + 0.18);
     q("[data-bench-value]", metric).forEach((el, i) => {
       const value = Number(el.dataset.benchValue);
       const decimals = Number(el.dataset.decimals);
@@ -147,12 +147,12 @@ function bench() {
       tl.fromTo(
         n,
         { v: 0 },
-        { v: value, duration: 1.2, ease: "expo.out", onUpdate: () => (el.textContent = n.v.toFixed(decimals) + suffix) },
+        { v: value, duration: 0.9, ease: "power2.out", onUpdate: () => (el.textContent = n.v.toFixed(decimals) + suffix) },
         at + 0.18 + i * 0.08,
       );
     });
   });
-  tl.from(section.querySelector("[data-bench-insight]"), { opacity: 0, y: 16, duration: 0.8, ease: "power3.out" }, "-=0.7");
+  tl.from(section.querySelector("[data-bench-insight]"), { opacity: 0, y: 16, duration: 0.6, ease: "power2.out" }, "-=0.4");
   return () => values.forEach((el, i) => (el.textContent = finals[i]));
 }
 
