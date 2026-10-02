@@ -5,10 +5,31 @@ import { asset } from "@/lib/asset";
 import { ytCopy } from "@/lib/yt/copy";
 import { LOADER_HIDDEN_AT, LOADER_OPEN_DELAY, LOADER_OPEN_MS } from "@/lib/yt/introTiming";
 
+/**
+ * The YouTube body as plain cubics, clockwise from the top centre (where the outline starts drawing). No zero-length handles: the
+ * stock path had them at the top and bottom centres, which left a one-pixel nick in the stroke.
+ */
 const BODY =
-  "M27.97 3.12C27.64 1.89 26.68.93 25.45.6 23.22 0 14.27 0 14.27 0S5.32 0 3.09.6C1.86.93.9 1.89.57 3.12 0 5.35 0 10 0 10s0 4.65.57 6.88c.33 1.23 1.29 2.19 2.52 2.52C5.32 20 14.27 20 14.27 20s8.95 0 11.18-.6c1.23-.33 2.19-1.29 2.52-2.52.6-2.23.6-6.88.6-6.88s0-4.65-.6-6.88z";
+  "M14.27 0C18.5 0 23.22 0 25.45.6 26.68.93 27.64 1.89 27.97 3.12 28.57 5.35 28.57 7.7 28.57 10 28.57 12.3 28.57 14.65 27.97 16.88 27.64 18.11 26.68 19.07 25.45 19.4 23.22 20 18.5 20 14.27 20 10.04 20 5.32 20 3.09 19.4 1.86 19.07.9 18.11.57 16.88 0 14.65 0 12.3 0 10 0 7.7 0 5.35.57 3.12.9 1.89 1.86.93 3.09.6 5.32 0 10.04 0 14.27 0Z";
 /** Two wave periods wide, so sliding it left by one period loops seamlessly. */
 const WAVE = "M-30 1 q7.5 -2 15 0 t15 0 t15 0 t15 0 V24 H-30 Z";
+/** The same crest as a line: the lit surface of the liquid. */
+const WAVE_SURFACE = "M-30 1 q7.5 -2 15 0 t15 0 t15 0 t15 0";
+/**
+ * Liquid offset at 0 % and 100 %. The crest spans 2 units, so full must lift it past the top edge (the old -0.5 left an empty sliver
+ * in the corner) and empty must sink it below the bottom. Keep in sync with the pre-hydration rule in youtube.css.
+ */
+const WAVE_EMPTY = 20.5;
+const WAVE_FULL = -2;
+const TRIANGLE = "M11.4 14.29 18.83 10 11.4 5.71z";
+/** Bubbles: x, radius, rise time (s). They rise inside the liquid and fade before the surface. */
+const BUBBLES: Array<[number, number, number]> = [
+  [5.5, 0.42, 3.1],
+  [10.5, 0.28, 2.5],
+  [16, 0.5, 3.6],
+  [20.5, 0.32, 2.8],
+  [24.2, 0.38, 3.3],
+];
 
 /** Without a real milestone the bar still creeps to this share over CREEP_MS, so a slow network never looks frozen. */
 const CREEP_MAX = 82;
@@ -54,9 +75,10 @@ export function YtLoader({ target, done }: { target: number; done: boolean }) {
     const from = Math.max(shown.current, Number.isFinite(css) ? Math.min(css, CREEP_MAX) : 0);
     shown.current = from;
     const q = <T extends Element>(sel: string) => root.querySelector<T>(sel)!;
-    const outline = q<SVGPathElement>("[data-l-outline]");
+    const outline = q<SVGGElement>("[data-l-outline]");
     const wave = q<SVGGElement>("[data-l-wave]");
-    const tri = q<SVGPathElement>("[data-l-tri]");
+    const tri = q<SVGGElement>("[data-l-tri]");
+    const halo = q<HTMLElement>(".yt-loader-halo");
     const bar = q<HTMLElement>("[data-l-bar]");
     const knob = q<HTMLElement>("[data-l-knob]");
     const trackW = knob.parentElement!.clientWidth;
@@ -81,7 +103,8 @@ export function YtLoader({ target, done }: { target: number; done: boolean }) {
 
       // Outline draws over the first half; the liquid rises from empty to full over the whole run; the triangle grows in last.
       outline.style.strokeDashoffset = String(1 - clamp01(p / 0.5));
-      wave.style.transform = `translateY(${(1 - p) * 21 - 0.5}px)`;
+      wave.style.transform = `translateY(${WAVE_EMPTY + (WAVE_FULL - WAVE_EMPTY) * p}px)`;
+      halo.style.setProperty("--fill", p.toFixed(3));
       const tp = clamp01((p - 0.7) / 0.28);
       tri.style.transform = `scale(${0.3 + 0.7 * (1 - Math.pow(1 - tp, 3))})`;
       tri.style.opacity = String(tp);
@@ -140,20 +163,77 @@ export function YtLoader({ target, done }: { target: number; done: boolean }) {
         <div data-l-mark className="yt-loader-mark relative">
           <span className="yt-loader-ring" aria-hidden="true" />
           <span className="yt-loader-ring is-late" aria-hidden="true" />
+          {/* A glass vessel filling with red: two liquid layers with a lit surface line and rising bubbles, an inner rim for depth,
+              a top gloss and a slow sheen over everything, then the triangle with a soft shadow. Gradients and transforms only. */}
           <svg viewBox="-1 -1 30.57 22" className="relative h-auto w-40 overflow-visible sm:w-48" aria-hidden="true">
             <defs>
               <clipPath id="yt-loader-clip">
                 <path d={BODY} />
               </clipPath>
+              <linearGradient id="yt-l-glass" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#fff" stopOpacity="0.07" />
+                <stop offset="1" stopColor="#fff" stopOpacity="0.015" />
+              </linearGradient>
+              {/* In the liquid's own coordinates, so the surface is always the brightest part and the colour deepens below it. */}
+              <linearGradient id="yt-l-liquid" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="21">
+                <stop offset="0" stopColor="#FF3D63" />
+                <stop offset="0.35" stopColor="#FF0033" />
+                <stop offset="1" stopColor="#B8002A" />
+              </linearGradient>
+              <linearGradient id="yt-l-gloss" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#fff" stopOpacity="0.18" />
+                <stop offset="1" stopColor="#fff" stopOpacity="0" />
+              </linearGradient>
+              <linearGradient id="yt-l-floor" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#000" stopOpacity="0" />
+                <stop offset="1" stopColor="#000" stopOpacity="0.28" />
+              </linearGradient>
+              <linearGradient id="yt-l-sheen" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stopColor="#fff" stopOpacity="0" />
+                <stop offset="0.5" stopColor="#fff" stopOpacity="0.2" />
+                <stop offset="1" stopColor="#fff" stopOpacity="0" />
+              </linearGradient>
+              <linearGradient id="yt-l-rim" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stopColor="#FF6B86" />
+                <stop offset="0.5" stopColor="#FF0033" />
+                <stop offset="1" stopColor="#E0002D" />
+              </linearGradient>
+              <linearGradient id="yt-l-tri" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#fff" />
+                <stop offset="1" stopColor="#FFE1E7" />
+              </linearGradient>
             </defs>
-            <path d={BODY} fill="rgb(255 255 255 / 0.04)" />
+            <path d={BODY} fill="url(#yt-l-glass)" />
             <g clipPath="url(#yt-loader-clip)">
-              <g data-l-wave style={{ transform: "translateY(20.5px)" }}>
-                <path className="yt-loader-wave" d={WAVE} fill="#FF0033" />
+              <g data-l-wave style={{ transform: `translateY(${WAVE_EMPTY}px)` }}>
+                <g style={{ transform: "translateY(-0.7px)" }}>
+                  <path className="yt-loader-wave is-back" d={WAVE} fill="#9E0024" />
+                </g>
+                <g className="yt-loader-wave">
+                  <path d={WAVE} fill="url(#yt-l-liquid)" />
+                  <path d={WAVE_SURFACE} fill="none" stroke="#FF9AAE" strokeWidth="0.32" strokeOpacity="0.75" />
+                </g>
+                {BUBBLES.map(([x, r, s], i) => (
+                  <circle key={i} className="yt-loader-bubble" cx={x} cy="19.5" r={r} style={{ "--s": `${s}s`, "--d": `${-i * 0.73}s` } as CSSProperties} />
+                ))}
+              </g>
+              <rect x="0" y="12" width="28.57" height="8" fill="url(#yt-l-floor)" />
+              <path d={BODY} fill="none" stroke="#5A0016" strokeOpacity="0.45" strokeWidth="1.6" />
+              <rect x="0" y="0" width="28.57" height="8.5" fill="url(#yt-l-gloss)" />
+              <path d="M3.2 1.5Q14.3.7 25.4 1.5" fill="none" stroke="#fff" strokeOpacity="0.3" strokeWidth="0.25" strokeLinecap="round" />
+              <g className="yt-loader-sheen">
+                <rect x="-7" y="-2" width="5" height="25" fill="url(#yt-l-sheen)" transform="skewX(-18)" />
               </g>
             </g>
-            <path data-l-outline className="yt-loader-outline" d={BODY} fill="none" stroke="#FF0033" strokeWidth="0.5" pathLength={1} strokeDasharray="1" />
-            <path data-l-tri d="M11.4 14.29 18.83 10 11.4 5.71z" fill="#FFFFFF" style={{ opacity: 0, transformOrigin: "14.6px 10px" }} />
+            {/* Outline: a soft wide stroke under a crisp one. The dash offset is set on the group and inherited by both. */}
+            <g data-l-outline className="yt-loader-outline" fill="none" strokeLinejoin="round" strokeLinecap="round">
+              <path d={BODY} stroke="#FF0033" strokeOpacity="0.28" strokeWidth="1.3" pathLength={1} strokeDasharray="1" />
+              <path d={BODY} stroke="url(#yt-l-rim)" strokeWidth="0.5" pathLength={1} strokeDasharray="1" />
+            </g>
+            <g data-l-tri style={{ opacity: 0, transformOrigin: "14.6px 10px" }}>
+              <path d={TRIANGLE} fill="#6E0018" fillOpacity="0.35" transform="translate(0.15 0.45)" />
+              <path d={TRIANGLE} fill="url(#yt-l-tri)" />
+            </g>
           </svg>
         </div>
         <p className="yt-loader-fade mt-9 text-xs font-medium uppercase tracking-[0.32em] text-muted">{ytCopy.loader.label}</p>

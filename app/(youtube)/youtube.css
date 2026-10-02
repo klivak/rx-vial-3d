@@ -68,9 +68,10 @@ html.lenis, html.lenis body { height: auto; }
 
 /* Loader. The hole in the mask grows from the button centre when loading is done, so the page opens as a circle.
    Its timing comes from lib/yt/introTiming.ts (set inline by YtLoader), which the hero entrance is scheduled against. */
-@property --hole { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@property --hole { syntax: "<length>"; inherits: false; initial-value: -2px; }
 .yt-loader {
-  --hole: 0px;
+  /* Below zero, not 0: a 0px transparent stop still left a one-pixel pinhole at the screen centre for the whole load. */
+  --hole: -2px;
   mask-image: radial-gradient(circle at var(--hx, 50%) var(--hy, 50%), transparent var(--hole), #000 calc(var(--hole) + 1px));
   transition: --hole var(--l-open-ms) cubic-bezier(0.7, 0, 0.25, 1) var(--l-open-delay), visibility 0s linear var(--l-hidden-at);
 }
