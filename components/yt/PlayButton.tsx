@@ -12,7 +12,7 @@ import { AUDIT_URL } from "@/lib/yt/copy";
 import { applyFinish } from "@/lib/yt/finishes";
 import { glitchAt } from "@/lib/yt/glitch";
 import { buttonMaxHeight, columnShare } from "@/lib/yt/layout";
-import { ytPointer, ytState } from "@/lib/yt/state";
+import { ytIntro, ytPointer, ytState } from "@/lib/yt/state";
 
 /** Radians the button turns towards the pointer (or the phone's tilt). */
 const TILT_Y = 0.32;
@@ -26,6 +26,12 @@ const smooth = { x: 0, y: 0 };
 /** Seconds between the rings the button sends out on its own while the tools orbit it. */
 const ORBIT_PULSE = 2.4;
 let lastPulse = -Infinity;
+/** Entrance after the loader: the button rises and spins in grey, the red pours in, and it lands with a ring. */
+const INTRO_MS = 1800;
+
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+const easeOutCubic = (x: number) => 1 - Math.pow(1 - x, 3);
+const easeOutBack = (x: number) => 1 + 2.4 * Math.pow(x - 1, 3) + 1.4 * Math.pow(x - 1, 2);
 
 /** Soft streak for the scan line: bright in the middle, fading to nothing at the sides and towards the ends. */
 function streakTexture() {
@@ -156,19 +162,28 @@ export function PlayButton() {
     // Frame scale is a share of the screen height, capped by the column width so narrow laptops get a smaller button.
     const size = Math.min(s.scale * vp.height, buttonMaxHeight(screen.width) * (vp.height / screen.height));
     // Glitch burst (fired as pains light up): a small decaying sway, scaled to the button.
-    const glitch = glitchAt(performance.now());
+    const now = performance.now();
+    const glitch = glitchAt(now);
+    // 0 until the loader lifts, then 1 over INTRO_MS: rise and spin first, the liquid follows, the ring marks the landing.
+    const intro = ytIntro.at < 0 ? 0 : clamp01((now - ytIntro.at) / INTRO_MS);
+    const arrive = easeOutCubic(clamp01(intro / 0.7));
+    const pour = clamp01((intro - 0.3) / 0.7);
+    if (!ytIntro.rang && intro >= 0.55) {
+      ytIntro.rang = true;
+      p.rippleAt = t;
+    }
     root.current.position.set(
       (s.x * vp.width * columnShare(screen.width)) / 2 + glitch.shiftX * size,
-      (s.y * vp.height) / 2 + Math.sin(t * 0.9) * 0.025 * s.idle * size,
+      (s.y * vp.height) / 2 + Math.sin(t * 0.9) * 0.025 * s.idle * size - (1 - arrive) * 0.45 * size,
       0,
     );
-    root.current.scale.setScalar(size * (1 + p.hover * 0.04 - p.press * 0.06));
+    root.current.scale.setScalar(size * (1 + p.hover * 0.04 - p.press * 0.06) * (0.4 + 0.6 * easeOutBack(clamp01(intro / 0.75))));
 
     // Award metals mirror the studio: a big tilt swings coloured reflections across them, so the pointer and sway calm down there.
     const calm = 1 - Math.min(1, s.tier) * 0.75;
     tilt.current.rotation.set(
       s.rotX + smooth.y * TILT_X * calm + Math.sin(t * 0.7) * 0.035 * s.idle,
-      s.rotY + smooth.x * TILT_Y * calm + Math.sin(t * 0.5) * 0.09 * s.idle * calm,
+      s.rotY + smooth.x * TILT_Y * calm + Math.sin(t * 0.5) * 0.09 * s.idle * calm - (1 - arrive) * Math.PI * 1.2,
       s.rotZ + Math.sin(t * 0.43) * 0.02 * s.idle,
     );
     press.current.scale.z = 1 - p.hover * 0.12 - p.press * 0.3;
@@ -176,7 +191,7 @@ export function PlayButton() {
     // Finish (red lacquer or an award metal), then the liquid fill on top: the empty part is grey, the level glows.
     const finish = applyFinish(button, s.tier);
     const triangleGlow = finish.triangleGlow;
-    const fill = s.fill;
+    const fill = s.fill * pour * pour * (3 - 2 * pour);
     // In a glitch the red surges up and drains again: the channel trying to come alive.
     button.fill.uFill.value = fill + (1 - fill) * glitch.surge * 0.55;
     button.fill.uTime.value = t;
@@ -226,7 +241,7 @@ export function PlayButton() {
     // Demand frameloop: keep drawing while anything is alive; otherwise the GPU rests until the next scroll update.
     const settling = Math.abs(parallax.x - smooth.x) + Math.abs(parallax.y - smooth.y) > 1e-3 || Math.abs(p.hoverTarget - p.hover) > 1e-3;
     const filling = fill > 0.001 && fill < 0.999;
-    if (s.idle > 0 || s.scan > 0.01 || filling || glitch.strength > 0 || p.press > 0 || ringsLive || settling) invalidate();
+    if (intro < 1 || s.idle > 0 || s.scan > 0.01 || filling || glitch.strength > 0 || p.press > 0 || ringsLive || settling) invalidate();
   });
 
   const over = (e: ThreeEvent<PointerEvent>) => {

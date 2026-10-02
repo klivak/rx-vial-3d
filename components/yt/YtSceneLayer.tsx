@@ -6,11 +6,19 @@ import { PlayMark } from "@/components/yt/PlayMark";
 import { YtDotField } from "@/components/yt/YtDotField";
 import { YtLoader } from "@/components/yt/YtLoader";
 import { startSmoothScroll, unlockScroll } from "@/lib/yt/smoothScroll";
+import { startYtIntro } from "@/lib/yt/state";
 
 const MAX_LOADER_MS = 7000;
 /** Long enough to read the loader as an intro, not a flash. */
 const MIN_LOADER_MS = 2400;
 const SETTLE_MS = 500;
+/**
+ * The loader's exit (yt-loader in youtube.css): the button presses, then the circle opens from 0.6 s to 1.65 s. The 3D button
+ * starts arriving as the circle starts to open; the hero text waits until the circle has passed the text column, so its intro
+ * plays in full view instead of under the mask.
+ */
+const BUTTON_IN_MS = 550;
+const TEXT_IN_MS = 950;
 
 const YtExperience = dynamic(() => import("@/components/yt/YtExperience"), { ssr: false });
 
@@ -63,8 +71,13 @@ export function YtSceneLayer() {
 
   useEffect(() => {
     if (!loaded) return;
-    document.documentElement.classList.remove("is-loading");
-    unlockScroll();
+    startYtIntro(BUTTON_IN_MS);
+    const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const timer = setTimeout(() => {
+      document.documentElement.classList.remove("is-loading");
+      unlockScroll();
+    }, still ? 0 : TEXT_IN_MS);
+    return () => clearTimeout(timer);
   }, [loaded]);
 
   return (

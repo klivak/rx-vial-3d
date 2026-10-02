@@ -17,3 +17,13 @@ export function fireGlitch() {
   ytFx.glitchAt = performance.now();
   ytFx.glitchSeed = Math.random() * 1000;
 }
+
+/** Hero entrance once the loader lifts: the button spins in, fills with red and sends out a ring (performance.now() ms; -1 until then). */
+export const ytIntro = { at: -1, rang: false };
+
+/** Reduced motion skips the entrance: the button is simply there. */
+export function startYtIntro(delayMs: number) {
+  const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  ytIntro.at = still ? 0 : performance.now() + delayMs;
+  ytIntro.rang = still;
+}

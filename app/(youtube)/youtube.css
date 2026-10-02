@@ -277,7 +277,8 @@ html.lenis, html.lenis body { height: auto; }
 .yt-ripple { position: absolute; width: var(--d); height: var(--d); border-radius: 9999px; background: rgb(255 255 255 / 0.5); pointer-events: none; z-index: -1; animation: yt-ripple 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
 /* Hero: the highlighted word and the chips floating around the 3D button. */
-.yt-hl { background: linear-gradient(100deg, #ff3355, #ff0033 40%, #ff6a3d); -webkit-background-clip: text; background-clip: text; color: transparent; }
+/* Twice as wide as the word with a pale band in the middle, so the entrance can slide one shine through and stop on the red. */
+.yt-hl { background: linear-gradient(100deg, #ff3355, #ff0033 16%, #ff6a3d 40%, #ffe1e6 50%, #ff3355 60%, #ff0033 76%, #ff6a3d) 0 0 / 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; }
 @keyframes yt-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 .yt-chip { translate: calc(var(--px, 0) * var(--depth) * 1px) calc(var(--py, 0) * var(--depth) * 1px); transition: translate 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
 .yt-chip > span { animation: yt-bob 6s ease-in-out infinite; box-shadow: 0 20px 50px rgb(0 0 0 / 0.35); }
@@ -289,6 +290,17 @@ html.lenis, html.lenis body { height: auto; }
 .yt-chip-b > span { animation-delay: -3s; }
 .yt-chip-c { --depth: 20; right: calc(100% - var(--cx) + var(--btn-w) * 0.18); top: calc(var(--cy) + var(--btn-h) * 0.5 + 28px); }
 .yt-chip-c > span { animation-delay: -4.5s; }
+/* Hero entrance (after the loader): a light runs once through the highlighted words; the chips pop out of the landed button. */
+@keyframes yt-hl-shine { from { background-position: 100% 0; } to { background-position: 0 0; } }
+html:not(.is-loading) .yt-hl { animation: yt-hl-shine 1.5s cubic-bezier(0.45, 0, 0.2, 1) 1.1s both; }
+@keyframes yt-chip-in {
+  from { opacity: 0; transform: scale(0.6) translateY(24px); filter: blur(8px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+html:not(.is-loading) .yt-chip[data-intro] { animation-name: yt-chip-in; animation-timing-function: cubic-bezier(0.34, 1.5, 0.5, 1); }
+.yt-chip-a[data-intro] { transform-origin: 100% 100%; }
+.yt-chip-b[data-intro] { transform-origin: 0 100%; }
+.yt-chip-c[data-intro] { transform-origin: 100% 0; }
 
 /* Problem chart: active tab underline and the pulsing "now". */
 .yt-tab-active { box-shadow: inset 0 -2px 0 #ff0033; }
@@ -315,7 +327,7 @@ html.lenis, html.lenis body { height: auto; }
 .yt-subs { background: linear-gradient(100deg, #f6f7fb, #c9d1e6); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
 @media (prefers-reduced-motion: reduce) {
-  .yt-aurora::before, .yt-aurora::after, .yt-chip > span, .yt-now-pulse { animation: none; }
+  .yt-aurora::before, .yt-aurora::after, .yt-chip > span, .yt-now-pulse, html:not(.is-loading) .yt-hl { animation: none; }
   .yt-btn-primary::after { display: none; }
   .yt-live-dot { animation: none; }
   .yt-btn-primary, .yt-btn-ghost, .yt-spot, .yt-thumb > div { transition: none; }
