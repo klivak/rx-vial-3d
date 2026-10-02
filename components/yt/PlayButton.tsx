@@ -6,11 +6,12 @@ import { AdditiveBlending, CanvasTexture, Color, Group, Mesh, MeshBasicMaterial,
 import { parallax, startParallax } from "@/lib/parallax";
 import { getQuality } from "@/lib/quality";
 import { buildPlayButton, buildRippleGeometry, PLAY_BUTTON_FRONT_Z } from "@/lib/yt/buildPlayButton";
-import { OrbitRings, PainWaves, Radar, ScoreRing, scoreArc, scoreBreath } from "@/components/yt/ButtonFx";
+import { Debris, OrbitRings, Radar, ScoreRing, scoreArc, scoreBreath } from "@/components/yt/ButtonFx";
 import { Sparkles } from "@/components/yt/Sparkles";
 import { AUDIT_URL } from "@/lib/yt/copy";
 import { applyFinish } from "@/lib/yt/finishes";
 import { buttonMaxHeight, columnShare } from "@/lib/yt/layout";
+import { BEAT_MS, beatAt } from "@/lib/yt/heartbeat";
 import { ytIntro, ytPointer, ytState } from "@/lib/yt/state";
 
 /** Radians the button turns towards the pointer (or the phone's tilt). */
@@ -204,20 +205,25 @@ export function PlayButton() {
     const pop = landAge < 1.2 ? Math.exp(-landAge * 4.5) * Math.sin(landAge * 13) * 0.08 : 0;
     // Eases in over the first stretch of the arc, so the lean does not jump when the ring starts.
     const lean = s.score * SCORE_LEAN * Math.min(1, arc * 8);
+    // "Sound familiar?": each pain is a hit. The button jolts back from it and shudders, and its cracks flare red.
+    const beat = beatAt(now);
+    const hitAge = beat < 0 ? Infinity : (beat * BEAT_MS) / 1000;
+    const jolt = hitAge < 0.6 ? Math.exp(-hitAge * 9) : 0;
+    const shudder = jolt > 0 ? jolt * Math.sin(hitAge * 70) : 0;
     root.current.position.set(
       (s.x * vp.width * columnShare(screen.width)) / 2,
-      (s.y * vp.height) / 2 + Math.sin(t * 0.9) * 0.025 * s.idle * size - (1 - arrive) * 0.45 * size,
-      0,
+      (s.y * vp.height) / 2 + Math.sin(t * 0.9) * 0.025 * s.idle * size - (1 - arrive) * 0.45 * size - jolt * 0.03 * size,
+      -jolt * 0.12 * size,
     );
     root.current.scale.setScalar(size * (1 + p.hover * 0.04 - p.press * 0.06 + pop) *(0.4 + 0.6 * easeOutBack(clamp01(intro / 0.75))));
 
     // Award metals mirror the studio: a big tilt swings coloured reflections across them, so the pointer and sway calm down there.
     const calm = 1 - Math.min(1, s.tier) * (1 - s.lacquer) * 0.75;
     tilt.current.rotation.set(
-      s.rotX + smooth.y * TILT_X * calm + Math.sin(t * 0.7) * 0.035 * s.idle + (1 - arrive) * 0.35 - Math.cos(arc * Math.PI * 2) * lean,
+      s.rotX + smooth.y * TILT_X * calm + Math.sin(t * 0.7) * 0.035 * s.idle + (1 - arrive) * 0.35 - Math.cos(arc * Math.PI * 2) * lean - jolt * 0.12,
       // The entrance swings in from the other side rather than spinning: the face stays towards the camera from the first frame.
-      s.rotY + smooth.x * TILT_Y * calm + Math.sin(t * 0.5) * 0.09 * s.idle * calm + (1 - arrive) * 0.95 + Math.sin(arc * Math.PI * 2) * lean,
-      s.rotZ + Math.sin(t * 0.43) * 0.02 * s.idle,
+      s.rotY + smooth.x * TILT_Y * calm + Math.sin(t * 0.5) * 0.09 * s.idle * calm + (1 - arrive) * 0.95 + Math.sin(arc * Math.PI * 2) * lean + jolt * 0.1,
+      s.rotZ + Math.sin(t * 0.43) * 0.02 * s.idle + shudder * 0.05,
     );
     press.current.scale.z = 1 - p.hover * 0.12 - p.press * 0.3;
 
@@ -227,6 +233,8 @@ export function PlayButton() {
     const fill = s.fill * pour * pour * (3 - 2 * pour);
     button.fill.uFill.value = fill;
     button.fill.uTime.value = t;
+    button.fill.uCrack.value = clamp01(s.crack);
+    button.fill.uCrackGlow.value = 0.03 + jolt * 2.5;
     button.bodyMaterial.roughness += (1 - fill) * 0.3;
     triangleTint.copy(button.triangleMaterial.color);
     button.triangleMaterial.color.copy(whiteDim).lerp(triangleTint, 0.35 + 0.65 * fill);
@@ -278,7 +286,7 @@ export function PlayButton() {
     const filling = fill > 0.001 && fill < 0.999;
     // Under the loader nothing is seen: after the warm-up frame the canvas sleeps until startYtIntro wakes it.
     if (ytIntro.at < 0) return;
-    if (intro < 1 || s.scan > 0.01 || filling || p.press > 0 || ringsLive || settling) invalidate();
+    if (intro < 1 || s.scan > 0.01 || filling || p.press > 0 || ringsLive || settling || jolt > 1e-3) invalidate();
     else if (s.idle > 0) {
       // Orbit lights, the score head, the radar sweep and the award glints move fast enough to want every frame.
       const sparkling = Math.min(1, Math.max(0, s.tier - 0.4)) * (1 - s.lacquer) > 0.01;
@@ -332,7 +340,7 @@ export function PlayButton() {
       <OrbitRings />
       <ScoreRing />
       <Radar />
-      <PainWaves />
+      <Debris />
     </group>
   );
 }

@@ -55,7 +55,7 @@ function scrubbedLines(desktop: boolean) {
   });
 }
 
-/** Screen 2: each pain that lights up sends a weak heartbeat through the grey button, so the problems land on the channel one by one. */
+/** Screen 2: each pain that lights up hits the grey button (it jolts, its cracks flare, chips fall off), so the problems land on the channel one by one. */
 function painBeats() {
   q("#problem [data-light]").forEach((pain) =>
     ScrollTrigger.create({ trigger: pain, start: "top 64%", onEnter: fireBeat, onEnterBack: fireBeat }),

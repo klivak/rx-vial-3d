@@ -33,6 +33,8 @@ export type YtFrame = {
   scoreDraw: number;
   /** Competitors screen: a radar behind the button sweeps over rival channels. */
   radar: number;
+  /** "Sound familiar?": how far the cracks have spread over the grey button, 0..1. Grows while the pains scroll by, heals on the scan. */
+  crack: number;
 };
 
 /**
@@ -41,7 +43,7 @@ export type YtFrame = {
  */
 export type YtTrack = Partial<YtFrame>;
 
-const base = { fill: 1, tier: 0, lacquer: 0, show: 1, glow: 1, idle: 1, scan: 0, link: 0, orbit: 0, score: 0, scoreDraw: 0, radar: 0 };
+const base = { fill: 1, tier: 0, lacquer: 0, show: 1, glow: 1, idle: 1, scan: 0, link: 0, orbit: 0, score: 0, scoreDraw: 0, radar: 0, crack: 0 };
 
 const hero: YtFrame = { ...base, x: 0.5, y: -0.02, scale: 0.36, rotX: 0.1, rotY: -0.42, rotZ: 0.04 };
 const problem: YtFrame = { ...base, x: -0.5, y: 0.02, scale: 0.36, rotX: 0.22, rotY: 0.62, rotZ: -0.16, fill: 0, glow: 0.15, idle: 0.6 };
@@ -86,10 +88,11 @@ export const ytFrames: Record<"desktop" | "mobile", YtFrame[]> = {
 export const ytSpans: Partial<Record<number, number>> = { 10: 1.5 };
 
 /**
- * In-section tracks by screen index: the scan refills the button while it turns to the right, the score ring draws while the report
+ * In-section tracks by screen index: the cracks spread over the grey button while the pains scroll by, the scan refills the button while it turns to the right, the score ring draws while the report
  * scrolls by (done before the screen leaves), the milestones turn it silver, gold, then diamond.
  */
 export const ytTracks: Partial<Record<number, YtTrack>> = {
+  1: { crack: 1 },
   2: { fill: 1, glow: 0.9, rotY: -0.18 },
   3: { scoreDraw: 1 },
   9: { tier: 3 },

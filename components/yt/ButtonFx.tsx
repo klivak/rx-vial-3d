@@ -6,6 +6,7 @@ import {
   AdditiveBlending,
   BufferGeometry,
   Color,
+  DodecahedronGeometry,
   DoubleSide,
   EllipseCurve,
   Float32BufferAttribute,
@@ -14,6 +15,7 @@ import {
   LineLoop,
   Mesh,
   MeshBasicMaterial,
+  MeshStandardMaterial,
   PlaneGeometry,
   RingGeometry,
   ShaderMaterial,
@@ -21,9 +23,10 @@ import {
   Vector2,
   Vector3,
 } from "three";
+import { playButtonColors } from "@/lib/yt/buildPlayButton";
 import { ytCopy } from "@/lib/yt/copy";
 import { beatAt } from "@/lib/yt/heartbeat";
-import { ytState } from "@/lib/yt/state";
+import { ytFx, ytState } from "@/lib/yt/state";
 
 /** Reused every frame for the light's position on its orbit. */
 const point = new Vector2();
@@ -301,81 +304,89 @@ export function Radar() {
   return <primitive object={mesh} />;
 }
 
-const WAVES_SIZE = 4.4;
+const CHIPS = 28;
+const CHIPS_PER_HIT = 7;
+const CHIP_LIFE = 1.5;
+const GRAVITY = 3.2;
 
-const WAVES_FRAGMENT = /* glsl */ `
-  uniform float uAge;
-  uniform vec3 uColor;
-  varying vec2 vUv;
-  // Distance to the button's silhouette: a rounded box the size of the body (half extents in button units).
-  float silhouette(vec2 p) {
-    vec2 q = abs(p) - vec2(0.714, 0.5) + 0.2;
-    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - 0.2;
-  }
-  // One wave of the beat: a contour that runs out from the edge, breaks into arcs and fades.
-  float wave(float d, float a, float start, float seed) {
-    float w = (uAge - start) / 0.7;
-    if (w <= 0.0 || w >= 1.0) return 0.0;
-    float front = 0.03 + (1.0 - pow(1.0 - w, 3.0)) * 1.25;
-    float width = 0.018 + 0.05 * w;
-    float line = exp(-pow((d - front) / width, 2.0));
-    float wake = smoothstep(front, 0.0, d) * exp(-d * 2.5) * 0.18;
-    float arcs = 0.5 + 0.5 * (0.6 * sin(a * 5.0 + seed) + 0.4 * sin(a * 11.0 - seed * 1.7));
-    float broken = mix(1.0, smoothstep(0.3, 0.6, arcs), w);
-    return (line * broken + wake) * pow(1.0 - w, 2.0);
-  }
-  void main() {
-    vec2 p = (vUv - 0.5) * ${WAVES_SIZE.toFixed(2)};
-    float d = silhouette(p);
-    if (d < 0.0) discard;
-    float a = atan(p.y, p.x);
-    // "Lub-dub": a strong wave and a weaker one right behind it.
-    float waves = wave(d, a, 0.0, 1.3) + 0.55 * wave(d, a, 0.17, 4.1);
-    // A brief red glow hugs the edge with each beat, with a few short rays torn out of it.
-    float flash = exp(-uAge * 6.0) + 0.5 * exp(-max(uAge - 0.17, 0.0) * 8.0) * step(0.17, uAge);
-    float rays = pow(0.5 + 0.5 * sin(a * 9.0 + 2.0) * sin(a * 4.0 - 1.0), 6.0);
-    float glow = flash * (exp(-d * 9.0) * 0.55 + rays * exp(-d * 3.5) * 0.35);
-    float v = waves + glow;
-    vec3 color = mix(uColor, vec3(1.0, 0.85, 0.88), clamp(waves - 0.6, 0.0, 1.0));
-    gl_FragColor = vec4(color * v, v);
-  }
-`;
+type Chip = { mesh: Mesh; born: number; vx: number; vy: number; x: number; y: number; z: number; spin: Vector3; size: number };
+
+/** A point on the button's rim (half extents 0.714 x 0.5), biased towards the cracked upper left where the hits land. */
+function rimPoint(out: Vector2) {
+  const a = Math.random() < 0.6 ? Math.PI * (0.55 + Math.random() * 0.6) : Math.random() * Math.PI * 2;
+  const c = Math.cos(a);
+  const s = Math.sin(a);
+  const k = 1 / Math.max(Math.abs(c) / 0.7, Math.abs(s) / 0.48);
+  return out.set(c * k, s * k);
+}
 
 /**
- * Pains screen: each pain that lights up sends a weak heartbeat out of the grey button. The button itself stays still; around it a
- * red contour runs out from the edge twice ("lub-dub"), breaking into arcs as it fades, with a short red glow on the rim. One shader quad.
+ * Pains screen: every pain that lights up hits the grey button. Small chips break off its rim, tumble and fall away under gravity,
+ * fading as they go. Lives in the button's root group, so they fall straight down whatever the button's turn.
  */
-export function PainWaves() {
-  const mesh = useMemo(() => {
-    const material = new ShaderMaterial({
-      vertexShader: RADAR_VERTEX,
-      fragmentShader: WAVES_FRAGMENT,
-      uniforms: { uAge: { value: 0 }, uColor: { value: new Color("#FF2A4F") } },
-      transparent: true,
-      depthWrite: false,
-      blending: AdditiveBlending,
+export function Debris() {
+  const parts = useMemo(() => {
+    const geometry = new DodecahedronGeometry(0.045, 0);
+    // Flattened and skewed, so the pieces read as flakes of lacquer rather than pebbles.
+    geometry.scale(1.3, 0.75, 0.4);
+    const chips: Chip[] = Array.from({ length: CHIPS }, () => {
+      const mesh = new Mesh(
+        geometry,
+        new MeshStandardMaterial({ color: playButtonColors.redDim, roughness: 0.45, metalness: 0.1, transparent: true, opacity: 0 }),
+      );
+      mesh.visible = false;
+      return { mesh, born: -Infinity, vx: 0, vy: 0, x: 0, y: 0, z: 0, spin: new Vector3(), size: 1 };
     });
-    const m = new Mesh(new PlaneGeometry(WAVES_SIZE, WAVES_SIZE), material);
-    m.position.z = -0.2;
-    m.visible = false;
-    return m;
+    const group = new Group();
+    chips.forEach((c) => group.add(c.mesh));
+    return { group, geometry, chips, seen: -1, next: 0 };
   }, []);
 
   useEffect(
     () => () => {
-      mesh.geometry.dispose();
-      (mesh.material as ShaderMaterial).dispose();
+      parts.geometry.dispose();
+      parts.chips.forEach((c) => (c.mesh.material as MeshStandardMaterial).dispose());
     },
-    [mesh],
+    [parts],
   );
 
-  useFrame(({ invalidate }) => {
-    const age = beatAt(performance.now());
-    mesh.visible = age >= 0;
-    if (!mesh.visible) return;
-    (mesh.material as ShaderMaterial).uniforms.uAge.value = age;
-    invalidate();
+  useFrame(({ clock, invalidate }) => {
+    const t = clock.elapsedTime;
+    // A new hit: break a handful of chips off the rim.
+    if (ytFx.beatAt !== parts.seen) {
+      parts.seen = ytFx.beatAt;
+      if (beatAt(performance.now()) >= 0)
+        for (let n = 0; n < CHIPS_PER_HIT; n++) {
+          const c = parts.chips[parts.next];
+          parts.next = (parts.next + 1) % CHIPS;
+          rimPoint(point);
+          c.born = t + n * 0.03;
+          c.x = point.x;
+          c.y = point.y;
+          c.z = 0.05 + Math.random() * 0.1;
+          c.vx = point.x * (0.5 + Math.random() * 0.6);
+          c.vy = 0.5 + Math.random() * 0.7;
+          c.spin.set(Math.random() * 10 - 5, Math.random() * 10 - 5, Math.random() * 8 - 4);
+          c.size = 0.5 + Math.random() * 0.9;
+          c.mesh.rotation.set(Math.random() * 6, Math.random() * 6, Math.random() * 6);
+        }
+    }
+    let alive = false;
+    parts.chips.forEach((c) => {
+      const age = t - c.born;
+      const live = age >= 0 && age < CHIP_LIFE;
+      c.mesh.visible = live;
+      if (!live) return;
+      alive = true;
+      c.mesh.position.set(c.x + c.vx * age, c.y + c.vy * age - 0.5 * GRAVITY * age * age, c.z + age * 0.2);
+      c.mesh.rotation.x += c.spin.x * 0.016;
+      c.mesh.rotation.y += c.spin.y * 0.016;
+      c.mesh.rotation.z += c.spin.z * 0.016;
+      c.mesh.scale.setScalar(c.size * (age < 0.08 ? age / 0.08 : 1));
+      (c.mesh.material as MeshStandardMaterial).opacity = Math.min(1, (1 - age / CHIP_LIFE) * 2.5);
+    });
+    if (alive) invalidate();
   });
 
-  return <primitive object={mesh} />;
+  return <primitive object={parts.group} />;
 }

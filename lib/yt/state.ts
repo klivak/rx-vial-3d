@@ -10,7 +10,7 @@ export function applyYtFrame(frame: YtFrame) {
 /** Pointer interaction on the button itself: hover pushes it in, a click plays a press and sends out a ring. */
 export const ytPointer = { hover: 0, hoverTarget: 0, press: 0, rippleAt: -1 };
 
-/** One-shot effects fired from the page: a heartbeat when a pain lights up on "Sound familiar?" (performance.now() ms). */
+/** One-shot effects fired from the page: a hit on the button when a pain lights up on "Sound familiar?" (performance.now() ms). */
 export const ytFx = { beatAt: -1 };
 
 export function fireBeat() {

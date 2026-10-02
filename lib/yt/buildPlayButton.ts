@@ -75,8 +75,18 @@ export type PlayButton = {
   triangle: Mesh;
   bodyMaterial: MeshPhysicalMaterial;
   triangleMaterial: MeshPhysicalMaterial;
-  /** Liquid fill of the body: level 0..1, wave time, the colour of the empty part and of the glowing surface line. */
-  fill: { uFill: { value: number }; uTime: { value: number }; uEmpty: { value: Color }; uEdge: { value: Color } };
+  /**
+   * Liquid fill of the body: level 0..1, wave time, the colour of the empty part and of the glowing surface line. Plus the damage on
+   * "Sound familiar?": how far the cracks have spread (0..1) and how hot they glow (a flash with every hit).
+   */
+  fill: {
+    uFill: { value: number };
+    uTime: { value: number };
+    uEmpty: { value: Color };
+    uEdge: { value: Color };
+    uCrack: { value: number };
+    uCrackGlow: { value: number };
+  };
   dispose: () => void;
 };
 
@@ -98,7 +108,71 @@ function addFill(material: MeshPhysicalMaterial, fill: PlayButton["fill"]) {
         uniform float uFill;
         uniform float uTime;
         uniform vec3 uEmpty;
-        uniform vec3 uEdge;`,
+        uniform vec3 uEdge;
+        uniform float uCrack;
+        uniform float uCrackGlow;
+        vec2 crackHash(vec2 p) {
+          p = vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)));
+          return fract(sin(p) * 43758.5453);
+        }
+        // Distance to the nearest border between random cells (two-pass Voronoi): the borders are the crack lines.
+        float crackEdge(vec2 p) {
+          vec2 n = floor(p);
+          vec2 f = fract(p);
+          vec2 mg = vec2(0.0);
+          vec2 mr = vec2(0.0);
+          float md = 8.0;
+          for (int j = -1; j <= 1; j++)
+            for (int i = -1; i <= 1; i++) {
+              vec2 g = vec2(float(i), float(j));
+              vec2 r = g + crackHash(n + g) - f;
+              float d = dot(r, r);
+              if (d < md) { md = d; mr = r; mg = g; }
+            }
+          md = 8.0;
+          for (int j = -2; j <= 2; j++)
+            for (int i = -2; i <= 2; i++) {
+              vec2 g = mg + vec2(float(i), float(j));
+              vec2 r = g + crackHash(n + g) - f;
+              if (dot(mr - r, mr - r) > 0.00001) md = min(md, dot(0.5 * (mr + r), normalize(r - mr)));
+            }
+          return md;
+        }
+        // Cracks from an impact on the upper left of the face, like a hit on glass: jagged rays running out of it (each with its own
+        // length, thinning to a point), broken web rings between them, and a fine shatter right at the hit. All grow with uCrack.
+        float crackLines(vec3 pos) {
+          if (uCrack < 0.001) return 0.0;
+          vec2 q = pos.xy - vec2(-0.4, 0.22);
+          float dist = length(q);
+          float reach = uCrack * 1.25;
+          if (dist > reach) return 0.0;
+          float a = atan(q.y, q.x);
+          float lines = 0.0;
+          for (int k = 0; k < 9; k++) {
+            float fk = float(k);
+            vec2 h = crackHash(vec2(fk, 3.7));
+            float len = (0.3 + 0.7 * h.y) * reach;
+            if (dist > len) continue;
+            // Each ray wanders a little as it runs out, with a finer zig-zag on top.
+            float ang = (fk + 0.15 + 0.7 * h.x) / 9.0 * 6.2832 - 3.1416 + 0.18 * sin(dist * 7.0 + fk * 2.3) + 0.05 * sin(dist * 31.0 + fk);
+            float off = abs(mod(a - ang + 3.1416, 6.2832) - 3.1416) * dist;
+            float w = 0.0012 + 0.0075 * (1.0 - dist / len);
+            lines = max(lines, 1.0 - smoothstep(w * 0.5, w, off));
+          }
+          // Web rings, each one broken into segments, the outer ones only once the cracks have spread.
+          for (int i = 0; i < 3; i++) {
+            float fi = float(i);
+            float r = (0.1 + fi * 0.12) * (0.6 + 0.4 * uCrack) + 0.012 * sin(a * 13.0 + fi * 5.0);
+            float seg = step(0.45, crackHash(vec2(floor(a * 1.43 + fi * 0.37), fi)).x);
+            float on = smoothstep(r, r + 0.05, reach * 0.6);
+            lines = max(lines, (1.0 - smoothstep(0.0012, 0.0035, abs(dist - r))) * seg * on);
+          }
+          // Shattered fine right at the hit.
+          float shatter = crackEdge(q * 34.0) / 34.0;
+          lines = max(lines, (1.0 - smoothstep(0.0008, 0.0025, shatter)) * (1.0 - smoothstep(0.03, 0.09, dist)));
+          // The back face stays clean; the hit is on the front.
+          return lines * smoothstep(-0.02, 0.06, pos.z);
+        }`,
       )
       .replace(
         "#include <color_fragment>",
@@ -107,12 +181,16 @@ function addFill(material: MeshPhysicalMaterial, fill: PlayButton["fill"]) {
         float fillCalm = 1.0 - abs(uFill * 2.0 - 1.0);
         float fillLevel = mix(-0.62, 0.62, uFill) + sin(vFillPos.x * 6.0 + uTime * 2.4) * 0.03 * fillCalm + sin(vFillPos.x * 11.0 - uTime * 1.7) * 0.012 * fillCalm;
         float fillInside = smoothstep(fillLevel + 0.006, fillLevel - 0.006, vFillPos.y);
-        diffuseColor.rgb = mix(uEmpty, diffuseColor.rgb, fillInside);`,
+        diffuseColor.rgb = mix(uEmpty, diffuseColor.rgb, fillInside);
+        float crack = crackLines(vFillPos);
+        diffuseColor.rgb *= 1.0 - crack * 0.85;`,
       )
       .replace(
         "#include <emissivemap_fragment>",
         `#include <emissivemap_fragment>
-        totalEmissiveRadiance += uEdge * (1.0 - smoothstep(0.0, 0.035, abs(vFillPos.y - fillLevel))) * fillCalm * 1.6;`,
+        totalEmissiveRadiance += uEdge * (1.0 - smoothstep(0.0, 0.035, abs(vFillPos.y - fillLevel))) * fillCalm * 1.6;
+        // Deep inside the cracks a red ember, flaring with each hit.
+        totalEmissiveRadiance += vec3(1.0, 0.1, 0.22) * crack * uCrackGlow;`,
       );
   };
   material.customProgramCacheKey = () => "yt-fill";
@@ -161,6 +239,8 @@ export function buildPlayButton(quality: PlayButtonQuality): PlayButton {
     uTime: { value: 0 },
     uEmpty: { value: new Color(playButtonColors.redDim) },
     uEdge: { value: new Color("#FF5577") },
+    uCrack: { value: 0 },
+    uCrackGlow: { value: 0 },
   };
   addFill(bodyMaterial, fill);
   const triangleMaterial = new MeshPhysicalMaterial({
