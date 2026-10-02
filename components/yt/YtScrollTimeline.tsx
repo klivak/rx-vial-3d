@@ -39,7 +39,6 @@ function syncCss() {
   if (!layer) {
     layer = document.getElementById("scene-layer");
     measureLayer();
-    window.addEventListener("resize", measureLayer);
   }
   scene ??= document.querySelector<HTMLElement>(".yt-3d");
   if (scene) put(scene, "show", "opacity", s.show.toFixed(3));
@@ -87,6 +86,22 @@ function glowColor(tier: number, lacquer: number) {
 const settled = (list: YtFrame[], i: number): YtFrame => ({ ...list[i], ...ytTracks[i] });
 
 /**
+ * A sticky screen can mark the free space for the button (`data-yt-anchor`, down to `data-yt-anchor-end`): its layout is in pixels
+ * (padding, heading, counter), so a fixed share of the viewport lands on the text on some heights. The frame is centred in that
+ * space and shrunk to fit it.
+ */
+function anchored(frame: YtFrame, section: HTMLElement, vh: number): YtFrame {
+  const anchor = section.querySelector<HTMLElement>("[data-yt-anchor]");
+  const stage = anchor?.closest<HTMLElement>(".md\:sticky");
+  if (!anchor || !stage || getComputedStyle(stage).position !== "sticky") return frame;
+  const base = stage.getBoundingClientRect().top;
+  const top = anchor.getBoundingClientRect().top - base;
+  const bottom = (anchor.querySelector("[data-yt-anchor-end]") ?? anchor).getBoundingClientRect().top - base;
+  if (bottom - top < 40) return frame;
+  return { ...frame, y: 1 - (top + bottom) / vh, scale: Math.min(frame.scale, (0.62 * (bottom - top)) / vh) };
+}
+
+/**
  * One scrubbed timeline over the whole page, so a single playhead owns the button: separate scrubbed tweens per screen could
  * both be catching up after a fast scroll and write the same numbers in one frame, which made the button twitch.
  * The move into frame i runs while section i rises from the bottom of the viewport to 30% from the top; a section's track then
@@ -113,8 +128,9 @@ function buildScrub(list: YtFrame[], invalidate: () => void) {
     tl.to({}, { duration: 1 }, 0);
     const sections = gsap.utils.toArray<HTMLElement>("[data-yt-frame]");
     const tops = sections.map((el) => el.getBoundingClientRect().top + window.scrollY);
+    const poses = list.map((frame, i) => (sections[i] ? anchored(frame, sections[i], vh) : frame));
     sections.forEach((section, i) => {
-      if (!list[i]) return;
+      if (!poses[i]) return;
       const top = tops[i];
       // A move never runs into the next one: when the next section starts its move, this one must already have landed, or the next
       // tween's from-values (this frame's settled pose) snap the button out of a half-finished move (the CTA is shorter than its span).
@@ -123,8 +139,8 @@ function buildScrub(list: YtFrame[], invalidate: () => void) {
       if (i > 0) {
         const start = at(top - vh);
         const span = Math.max(0.0005, arrive - start);
-        const { fill: fromFill, glow: fromGlow, tier: fromTier, lacquer: fromLacquer, show: fromShow, ...fromMove } = settled(list, i - 1);
-        const { fill, glow, tier, lacquer, show, ...move } = list[i];
+        const { fill: fromFill, glow: fromGlow, tier: fromTier, lacquer: fromLacquer, show: fromShow, ...fromMove } = settled(poses, i - 1);
+        const { fill, glow, tier, lacquer, show, ...move } = poses[i];
         tl!.fromTo(ytState, fromMove, { ...move, duration: span, ease: "power2.inOut", immediateRender: false }, start);
         // Fading in, the button stays faint until it has nearly landed (it drops in over the previous screen's text); fading out,
         // it goes early.
@@ -143,7 +159,7 @@ function buildScrub(list: YtFrame[], invalidate: () => void) {
       const track = ytTracks[i];
       if (track) {
         const end = Math.max(arrive + 0.0005, at(top + section.offsetHeight - vh));
-        const from = Object.fromEntries(Object.keys(track).map((k) => [k, list[i][k as keyof YtFrame]]));
+        const from = Object.fromEntries(Object.keys(track).map((k) => [k, poses[i][k as keyof YtFrame]]));
         tl!.fromTo(ytState, from, { ...track, duration: end - arrive, ease: "none", immediateRender: false }, arrive);
       }
     });
@@ -190,6 +206,13 @@ export function YtScrollTimeline() {
   const invalidate = useThree((s) => s.invalidate);
 
   useEffect(() => {
+    // The glow's y is in layer pixels; re-measure when the layer resizes, at most once a frame, and stop when the page unmounts.
+    const target = document.getElementById("scene-layer");
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      if (!frame) frame = requestAnimationFrame(() => ((frame = 0), measureLayer()));
+    });
+    if (target) observer.observe(target);
     const mm = gsap.matchMedia();
     mm.add(
       // matchMedia runs the callback when any condition matches, so desktop needs its own entry.
@@ -203,7 +226,11 @@ export function YtScrollTimeline() {
         return cleanup;
       },
     );
-    return () => mm.revert();
+    return () => {
+      mm.revert();
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
   }, [invalidate]);
 
   return null;

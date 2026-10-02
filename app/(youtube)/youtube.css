@@ -56,14 +56,14 @@ html.lenis, html.lenis body { height: auto; }
   position: absolute;
   left: calc(50% + min(25vw - 32px, 384px));
   top: 51%;
-  height: min(29vh, calc((100vw - 128px) * 0.19));
+  height: min(29lvh, calc((100vw - 128px) * 0.19));
   width: auto;
   transform: translate(-50%, -50%) perspective(900px) rotateY(-22deg);
   filter: drop-shadow(0 30px 60px rgb(255 0 51 / 0.25));
 }
 @media (max-width: 767px) {
   html:has(.yt-page) { --yt-gx: 55vw; --yt-gy: 87lvh; }
-  .yt-poster { left: 55%; top: 87%; height: 12vh; transform: translate(-50%, -50%); }
+  .yt-poster { left: 55%; top: 87%; height: 12lvh; transform: translate(-50%, -50%); }
 }
 
 /* Loader. The hole in the mask grows from the button centre when loading is done, so the page opens as a circle.
@@ -184,7 +184,7 @@ html.lenis, html.lenis body { height: auto; }
 /* Content column: every screen lays out inside it, and the 3D button positions are fractions of it (lib/yt/layout.ts). */
 .yt-container { width: 100%; max-width: 96rem; margin-inline: auto; container-type: inline-size; }
 /* Hero button height, the same formula as PlayButton: 36 % of the screen height, at most 24 % of the column width (lib/yt/layout.ts). */
-.yt-hero-frame { --btn-h: min(36vh, 24cqw); --btn-w: calc(var(--btn-h) * 1.35); --cx: 75%; --cy: 51%; }
+.yt-hero-frame { --btn-h: min(36lvh, 24cqw); --btn-w: calc(var(--btn-h) * 1.35); --cx: 75%; --cy: 51%; }
 
 /* Small type and surfaces */
 .yt-eyebrow {
@@ -392,10 +392,11 @@ html[data-quality="low"] .yt-header-bar { backdrop-filter: blur(8px); -webkit-ba
 
 /* Hero: the highlighted word and the chips floating around the 3D button. */
 /* Twice as wide as the word with a pale band in the middle, so the entrance can slide one shine through and stop on the red. */
-.yt-hl { background: linear-gradient(100deg, #ff3355, #ff0033 16%, #ff6a3d 40%, #ffe1e6 50%, #ff3355 60%, #ff0033 76%, #ff6a3d) 0 0 / 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; }
+.yt-hl { background: linear-gradient(100deg, #ff3355, #ff0033 16%, #ff6a3d 40%, #ffe1e6 50%, #ff3355 60%, #ff0033 76%, #ff6a3d) 0 0 / 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
 @keyframes yt-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 .yt-chip { translate: calc(var(--px, 0) * var(--depth) * 1px) calc(var(--py, 0) * var(--depth) * 1px); transition: translate 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
 .yt-chip > span { animation: yt-bob 6s ease-in-out infinite; box-shadow: 0 20px 50px rgb(0 0 0 / 0.35); }
+[data-hero-fade][data-off] .yt-chip > span { animation-play-state: paused; }
 /* Chips sit just outside the button's edges: two above it (left and right of centre), one below on the left; the hint below right. */
 /* Anchored with right/bottom rather than a translate: the entrance animation owns `transform` on these elements. */
 .yt-chip-a { --depth: -26; right: calc(100% - var(--cx) + var(--btn-w) * 0.1); bottom: calc(100% - var(--cy) + var(--btn-h) * 0.5 + 20px); }
@@ -454,14 +455,20 @@ html:not(.is-loading) .yt-chip[data-intro] { animation-name: yt-chip-in; animati
   clip-path: polygon(0 0, 100% 50%, 0 100%);
   background: linear-gradient(315deg, var(--m1), var(--m2) 45%, var(--m3));
 }
-.yt-award-name { background: linear-gradient(100deg, var(--m1), var(--m2) 60%, var(--m1)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.yt-award-name { background: linear-gradient(100deg, var(--m1), var(--m2) 60%, var(--m1)); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
 .yt-award > .yt-award-check {
   color: rgb(var(--glow));
   filter: drop-shadow(0 0 4px rgb(var(--glow) / 0.8));
   opacity: var(--lit);
   transform: scale(calc(0.6 + 0.4 * var(--lit)));
 }
-.yt-subs { background: linear-gradient(100deg, #f6f7fb, #c9d1e6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.yt-subs { background: linear-gradient(100deg, #f6f7fb, #c9d1e6); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+/* Without text clipping the gradient would fill the box and the text would vanish, so fall back to a solid colour. */
+@supports not ((background-clip: text) or (-webkit-background-clip: text)) {
+  .yt-hl { background: none; color: #ff3355; -webkit-text-fill-color: currentColor; }
+  .yt-award-name { background: none; color: var(--m1); -webkit-text-fill-color: currentColor; }
+  .yt-subs { background: none; color: #f6f7fb; -webkit-text-fill-color: currentColor; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .yt-loader-bar::after, .yt-loader-dot { animation: none; }

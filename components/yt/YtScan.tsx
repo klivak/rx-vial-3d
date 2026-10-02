@@ -41,8 +41,8 @@ export function YtScan() {
               <Group index={0} />
               <Group index={1} />
             </div>
-            <div className="order-first flex items-end justify-center md:order-none">
-              <p className="yt-glass flex items-baseline gap-2 rounded-full px-5 py-2 text-sm text-muted">
+            <div data-yt-anchor className="order-first flex items-end justify-center md:order-none">
+              <p data-yt-anchor-end className="yt-glass flex items-baseline gap-2 rounded-full px-5 py-2 text-sm text-muted">
                 <span data-scan-count className="text-xl font-semibold tabular-nums text-foreground">
                   35+
                 </span>

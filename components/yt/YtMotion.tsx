@@ -25,7 +25,11 @@ function reveals() {
 function heroFade() {
   const layer = document.querySelector("[data-hero-fade]");
   if (!layer) return;
-  const tl = gsap.timeline({ scrollTrigger: { trigger: layer, start: "top top", end: "+=40%", scrub: 0.5 } });
+  // Once the hero has faded out, `data-off` pauses the chips' endless bob (youtube.css) so it stops costing frames further down.
+  const off = (on: boolean) => layer.toggleAttribute("data-off", on);
+  const tl = gsap.timeline({
+    scrollTrigger: { trigger: layer, start: "top top", end: "+=40%", scrub: 0.5, onLeave: () => off(true), onEnterBack: () => off(false) },
+  });
   // Opacity and transform only: a scrubbed blur re-filtered the chip cards on every scroll frame, which phones could not keep up with.
   tl.to(layer, { opacity: 0, y: -60, ease: "none" }, 0);
 }
